@@ -41,7 +41,17 @@ architecture a of BF_CPU is
 	signal DP_d			: std_logic_vector(31 downto 0);
 	signal SP_d			: std_logic_vector(31 downto 0);
 
+	-- Arithmetic control lines
+	signal DAR_inc		: std_logic;
+	signal DAR_dec		: std_logic;
+	signal AAR_inc		: std_logic;
+	signal AAR_dec		: std_logic;
+	signal AAR_adr		: std_logic_vector(31 downto 0);
+	signal AAR_sel	: std_logic_vector(2 downto 0); -- Address arithmetic selector [IP, DP, SP]
+
 	signal ADR_sel		: std_logic_vector(2 downto 0);	-- Address selector [IP, DP, SP]
+
+	signal state		: integer;
 
 begin
 
@@ -57,6 +67,16 @@ begin
 	e_IR : entity REG8(a)			-- Instruction register
 		port map(CLK, nRST, IR_rd, IR_wr, CPU_D, CPU_D, IR_d);
 
+	-- Data arithmetic (add/sub)
+	e_DAR : entity INC8(a)
+		port map(CLK, nRST, DAR_inc, DAR_dec, AC_d, CPU_d);
+
+	-- Address arithmetic (add/sub)
+	e_AARMux : entity MUX32_3(a)
+		port map(CLK, nRST, AAR_sel, IP_d, DP_d, SP_d, AAR_adr);
+	e_AAR : entity INC32(a)
+		port map(CLK, nRST, AAR_inc, AAR_dec, AAR_adr, CPU_A);
+
 	-- Pointer registers
 	e_IP : entity REG32(a)			-- Instruction pointer
 		port map(CLK, nRST, IP_rd, IP_wr, CPU_D, CPU_D, IP_d);
@@ -68,5 +88,36 @@ begin
 	-- Address selection
 	e_AdrMux : entity MUX32_3(a)
 		port map(CLK, nRST, ADR_sel, IP_d, DP_d, SP_d, CPU_A);
+
+
+	-- CONROL
+	-- ------
+	p_control : process(CLK, nRST)
+	begin
+		if nRST='1' then
+			state <= 0;	-- Reset the CPU
+		
+		-- Control loop
+		elsif rising_edge(CLK) then
+			case state is
+
+				-- Reset CPU
+				when 0 =>
+					AC_wr		<= '0';
+					AC_rd		<= '0';
+					IR_wr		<= '0';
+					IR_rd		<= '0';
+					IP_wr		<= "0000";
+					IP_rd		<= "0000";
+					DP_wr		<= "0000";
+					DP_rd		<= "0000";
+					SP_wr		<= "0000";
+
+				-- Unknown state -> reset CPU
+				when others =>
+					state <= 0;
+			end case;
+		end if;
+	end process;
 
 end architecture;
