@@ -15,6 +15,7 @@ end entity;
 architecture a of BF_CPU is
 	-- Internal main signals
 	signal nRST			: std_logic;		-- Inverted of RST (active high)
+	signal sRST			: std_logic;		-- Software reset
 
 	-- CPU lines
 	signal CPU_D		: std_logic_vector(7 downto 0);
@@ -66,7 +67,7 @@ architecture a of BF_CPU is
 begin
 
 	-- Internal main signals
-	nRST <= not(RST);
+	nRST <= not(RST) or sRST;
 
 	-- DEBUG LEDS
 	LED <= CPU_D;
@@ -110,6 +111,8 @@ begin
 
 		-- Control loop
 		elsif rising_edge(CLK) then
+			sRST		<= '0';
+
 			AC_wr		<= '0';
 			AC_rd		<= '0';
 			IR_wr		<= '0';
@@ -163,6 +166,14 @@ begin
 						when x"1" => state <= 3;
 						-- "<" DP--
 						when x"2" => state <= 4;
+						-- "+" RAM[DP]++
+						when x"3" => state <= 5;
+						-- "-" RAM[DP] --
+						when x"4" => state <= 7;
+						-- Unknown -> RESET CPU
+						when others =>
+							sRST <= '0';
+							state <= 0;
 					end case;
 
 				-- Increase DP
@@ -181,9 +192,38 @@ begin
 					AAR_dec		<= '1';
 					state		<= 2;
 
+				-- Increase RAM[DP]
+				when 5 =>
+					-- AC = RAM[DP]
+					RAM_rd		<= '1';
+					AC_wr		<= '1';
+					DP_rd		<= '1';
+					state		<= 6;
+				when 6 =>
+					-- RAM[DP] = AC+1
+					RAM_wr		<= '1';
+					DAR_inc		<= '1';
+					DP_rd		<= '1';
+					state		<= 1;
+
+				-- Decrease RAM[DP]
+				when 7 =>
+					-- AC = RAM[DP]
+					RAM_rd		<= '1';
+					AC_wr		<= '1';
+					DP_rd		<= '1';
+					state		<= 6;
+				when 8 =>
+					-- RAM[DP] = AC-1
+					RAM_wr		<= '1';
+					DAR_dec		<= '1';
+					DP_rd		<= '1';
+					state		<= 1;
+
 				-- Unknown state -> reset CPU
 				when others =>
-					state <= 0;
+					sRST		<= '1';
+					state		<= 0;
 			end case;
 		end if;
 	end process;
