@@ -23,6 +23,8 @@ architecture a of BF_CPU is
 	-- Control lines registers
 	signal AC_wr		: std_logic;	-- Accumulator
 	signal AC_rd		: std_logic;
+	signal IR_wr		: std_logic;	-- Instruction register
+	signal IR_rd		: std_logic;
 
 	-- Control lines pointer registers
 	signal IP_wr		: std_logic_vector(3 downto 0);	-- Instruction pointer
@@ -34,9 +36,12 @@ architecture a of BF_CPU is
 
 	-- Direct data lines
 	signal AC_d			: std_logic_vector(7 downto 0);
+	signal IR_d			: std_logic_vector(7 downto 0);
 	signal IP_d			: std_logic_vector(31 downto 0);
 	signal DP_d			: std_logic_vector(31 downto 0);
 	signal SP_d			: std_logic_vector(31 downto 0);
+
+	signal ADR_sel		: std_logic_vector(2 downto 0);	-- Address selector [IP, DP, SP]
 
 begin
 
@@ -47,8 +52,10 @@ begin
 	LED <= CPU_D;
 
 	-- Registers
-	e_AC : entity REG8(a)
+	e_AC : entity REG8(a)			-- Accumulator
 		port map(CLK, nRST, AC_rd, AC_wr, CPU_D, CPU_D, AC_d);
+	e_IR : entity REG8(a)			-- Instruction register
+		port map(CLK, nRST, IR_rd, IR_wr, CPU_D, CPU_D, IR_d);
 
 	-- Pointer registers
 	e_IP : entity REG32(a)			-- Instruction pointer
@@ -57,5 +64,9 @@ begin
 		port map(CLK, nRST, DP_rd, DP_wr, CPU_D, CPU_D, DP_d);
 	e_SP : entity REG32(a)			-- Data pointer
 		port map(CLK, nRST, SP_rd, SP_wr, CPU_D, CPU_D, SP_d);
+
+	-- Address selection
+	e_AdrMux : entity MUX32_3(a)
+		port map(CLK, nRST, ADR_sel, IP_d, DP_d, SP_d, CPU_A);
 
 end architecture;

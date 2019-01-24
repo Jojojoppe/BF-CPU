@@ -17,7 +17,7 @@ entity REG8 is
 end entity;
 
 architecture a of REG8 is
-	signal DATA		: std_logic_vector(8 downto 0);
+	signal DATA		: std_logic_vector(7 downto 0);
 begin
 
 	D <= DATA;
