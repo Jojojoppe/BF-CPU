@@ -28,6 +28,7 @@ architecture a of BF_CPU is
 	-- Control lines registers
 	signal AC_wr		: std_logic;	-- Accumulator
 	signal AC_rd		: std_logic;
+	signal AC_clr		: std_logic;
 	signal IR_wr		: std_logic;	-- Instruction register
 	signal IR_rd		: std_logic;
 
@@ -89,7 +90,7 @@ begin
 
 	-- Registers
 	e_AC : entity REG8(a)			-- Accumulator
-		port map(CLK, nRST, AC_rd, AC_wr, CPU_D, CPU_D, AC_d);
+		port map(CLK, nRST or AC_clr, AC_rd, AC_wr, CPU_D, CPU_D, AC_d);
 	e_IR : entity REG8(a)			-- Instruction register
 		port map(CLK, nRST, IR_rd, IR_wr, CPU_D, CPU_D, IR_d);
 
@@ -150,6 +151,8 @@ begin
 			BU_wr		<= "0000";
 			BU_rd		<= '0';
 
+			AC_clr		<= '0';
+
 			DAR_inc		<= '0';
 			DAR_dec		<= '0';
 			AAR_inc		<= '0';
@@ -208,6 +211,10 @@ begin
 						when x"8" => state <= 42;
 						-- "S" Load SP
 						when x"9" => state <= 52;
+						-- "C" Clear RAM[DP]
+						when x"a" => state <= 61;
+						-- "L" Save literal to RAM[DP]
+						when x"b" => state <= 63;
 						-- Unknown -> RESET CPU
 						when others =>
 							sRST <= '0';
@@ -628,6 +635,38 @@ begin
 					IP_wr		<= '1';
 					AAR_sel		<= "001";
 					AAR_inc		<= '1';
+					state		<= 1;
+
+				-- Reset RAM[DP]
+				when 61 =>
+					-- AC = 0
+					AC_clr		<= '1';
+					state		<= 62;
+				when 62 =>
+					-- RAM[DP] = AC;
+					RAM_wr		<= '1';
+					DP_rd		<= '1';
+					AC_rd		<= '1';
+					state		<= 1;
+
+				-- Save literal to RAM[DP]
+				when 63 =>
+					-- AC = RAM[IP]
+					AC_wr		<= '1';
+					RAM_rd		<= '1';
+					IP_rd		<= '1';
+					state		<= 64;
+				when 64 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_inc		<= '1';
+					AAR_sel		<= "001";
+					state		<= 65;
+				when 65 =>
+					-- RAM[DP] = AC
+					RAM_wr		<= '1';
+					AC_rd		<= '1';
+					DP_rd		<= '1';
 					state		<= 1;
 
 				-- Unknown state -> reset CPU
