@@ -198,6 +198,8 @@ begin
 						when x"5" => state <= 9;
 						-- "]" Conditional backward jump
 						when x"6" => state <= 24;
+						-- "I" Load IP
+						when x"7" => state <= 34;
 						-- Unknown -> RESET CPU
 						when others =>
 							sRST <= '0';
@@ -426,6 +428,63 @@ begin
 					BU_rd		<= '1';
 					IP_wr		<= '1';
 					state		<= 1;
+
+				-- Load IP
+				when 34 =>
+					-- BUF[3] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "1000";
+					DAB_sel		<= "1000";
+					DAB_en		<= '1';
+					state		<= 35;
+				when 35 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 36;
+				when 36 =>
+					-- BUF[2] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0100";
+					DAB_sel		<= "0100";
+					DAB_en		<= '1';
+					state		<= 37;
+				when 37 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 38;
+				when 38 =>
+					-- BUF[1] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0010";
+					DAB_sel		<= "0010";
+					DAB_en		<= '1';
+					state		<= 39;
+				when 39 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 40;
+				when 40 =>
+					-- BUF[0] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0001";
+					DAB_sel		<= "0001";
+					DAB_en		<= '1';
+					state		<= 41;
+				when 41 =>
+					-- IP = BUF
+					BU_rd		<= '1';
+					IP_wr		<= '1';
+					state		<= 1;				
 
 				-- Unknown state -> reset CPU
 				when others =>
