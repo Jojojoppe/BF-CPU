@@ -102,6 +102,8 @@ begin
 	CPU_D <= Din when ((RAM_rd = '1') or (IO_rd = '1')) else "ZZZZZZZZ";
 	wr <= RAM_wr;
 	rd <= RAM_rd;
+	iwr <= IO_wr;
+	ird <= IO_rd;
 
 	CPU_D <= "LLLLLLLL";
 	CPU_A <= "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL";
@@ -724,10 +726,12 @@ begin
 
 				-- Halt
 				when 66 =>
+					report "H";
 					HLT			<= '1';
 
 				-- Set IO registers
 				when 67 =>
+					report "O";
 					-- IOR = RAM[IP]
 					RAM_rd		<= '1';
 					IOR_wr		<= '1';
@@ -742,6 +746,7 @@ begin
 
 				-- Output
 				when 69 =>
+					report ".";
 					-- AC = RAM[DP]
 					AC_wr		<= '1';
 					RAM_rd		<= '1';
@@ -755,6 +760,7 @@ begin
 
 				-- Input
 				when 71 =>
+					report ",";
 					-- Input AC
 					AC_wr		<= '1';
 					IO_rd		<= '1';

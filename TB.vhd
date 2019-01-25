@@ -1,5 +1,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
+use ieee.numeric_std.all;
 use work.all;
 
 entity TB is
@@ -31,6 +32,16 @@ begin
 	-- CPU
 	e_CPU : entity CPU(a)
 		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
+
+	-- IO
+	p_IO : process (CLK, IO_wr, IO_rd)
+	begin
+		if rising_edge(IO_wr) then
+			report "IO write [" & integer'image(to_integer(unsigned(A))) & "] = " & integer'image(to_integer(unsigned(D)));
+		elsif rising_edge(IO_rd) then
+			report "IO write [" & integer'image(to_integer(unsigned(A))) & "]";
+		end if;
+	end process;
 
 	-- Clock generation
 	CLK_process :process
