@@ -27,10 +27,26 @@ begin
 		Dout2 <= "00000000";
 		Dout3 <= "00000000";
 		case sel is
-			when "0001" => Dout0 <= Din;
-			when "0010" => Dout1 <= Din;
-			when "0100" => Dout2 <= Din;
-			when "1000" => Dout3 <= Din;
+			when "0001" => 
+				Dout0 <= Din;
+				Dout1 <= "00000000";
+				Dout2 <= "00000000";
+				Dout3 <= "00000000";
+			when "0010" => 
+				Dout1 <= Din;
+				Dout0 <= "00000000";
+				Dout2 <= "00000000";
+				Dout3 <= "00000000";		
+			when "0100" => 
+				Dout2 <= Din;
+				Dout0 <= "00000000";
+				Dout1 <= "00000000";
+				Dout3 <= "00000000";		
+			when "1000" => 
+				Dout3 <= Din;
+				Dout0 <= "00000000";
+				Dout1 <= "00000000";
+				Dout2 <= "00000000";
 			when others =>
 		end case;
 	end process;

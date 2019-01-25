@@ -189,7 +189,7 @@ begin
 					-- Decode opcode
 					case IR_d(3 downto 0) is
 						-- " " NOP
-						when x"0" => state <= 0;
+						when x"0" => state <= 1;
 						-- ">" DP++
 						when x"1" => state <= 3;
 						-- "<" DP--
@@ -228,7 +228,7 @@ begin
 					DP_wr		<= '1';
 					AAR_sel		<= "010";
 					AAR_dec		<= '1';
-					state		<= 2;
+					state		<= 1;
 
 				-- Increase RAM[DP]
 				when 5 =>
@@ -250,7 +250,7 @@ begin
 					RAM_rd		<= '1';
 					AC_wr		<= '1';
 					DP_rd		<= '1';
-					state		<= 6;
+					state		<= 8;
 				when 8 =>
 					-- RAM[DP] = AC-1
 					RAM_wr		<= '1';
@@ -619,9 +619,9 @@ begin
 					DAB_en		<= '1';
 					state		<= 59;
 				when 59 =>
-					-- DP = BUF
+					-- SP = BUF
 					BU_rd		<= '1';
-					DP_wr		<= '1';
+					SP_wr		<= '1';
 					state		<= 60;
 				when 60 =>
 					-- IP++

@@ -13,7 +13,7 @@ architecture a of TB is
 
 	-- Constants
 	constant CLK_PERIOD : time := 10 ns;	--100MHz clock
-	constant RUNTIME	: time := 200 ns;
+	constant RUNTIME	: time := 1000 ns;
 begin
 
 	e_bfcpu : entity BF_CPU(a)
