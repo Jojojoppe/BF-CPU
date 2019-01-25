@@ -200,6 +200,10 @@ begin
 						when x"6" => state <= 24;
 						-- "I" Load IP
 						when x"7" => state <= 34;
+						-- "D" Load DP
+						when x"8" => state <= 42;
+						-- "S" Load SP
+						when x"9" => state <= 52;
 						-- Unknown -> RESET CPU
 						when others =>
 							sRST <= '0';
@@ -484,7 +488,140 @@ begin
 					-- IP = BUF
 					BU_rd		<= '1';
 					IP_wr		<= '1';
-					state		<= 1;				
+					state		<= 51;
+				when 51 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 1;
+
+
+				-- Load DP
+				when 42 =>
+					-- BUF[3] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "1000";
+					DAB_sel		<= "1000";
+					DAB_en		<= '1';
+					state		<= 43;
+				when 43 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 44;
+				when 44 =>
+					-- BUF[2] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0100";
+					DAB_sel		<= "0100";
+					DAB_en		<= '1';
+					state		<= 45;
+				when 45 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 46;
+				when 46 =>
+					-- BUF[1] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0010";
+					DAB_sel		<= "0010";
+					DAB_en		<= '1';
+					state		<= 47;
+				when 47 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 48;
+				when 48 =>
+					-- BUF[0] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0001";
+					DAB_sel		<= "0001";
+					DAB_en		<= '1';
+					state		<= 49;
+				when 49 =>
+					-- DP = BUF
+					BU_rd		<= '1';
+					DP_wr		<= '1';
+					state		<= 50;
+				when 50 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 1;
+
+				-- Load SP
+				when 52 =>
+					-- BUF[3] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "1000";
+					DAB_sel		<= "1000";
+					DAB_en		<= '1';
+					state		<= 53;
+				when 53 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 54;
+				when 54 =>
+					-- BUF[2] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0100";
+					DAB_sel		<= "0100";
+					DAB_en		<= '1';
+					state		<= 55;
+				when 55 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 56;
+				when 56 =>
+					-- BUF[1] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0010";
+					DAB_sel		<= "0010";
+					DAB_en		<= '1';
+					state		<= 57;
+				when 57 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 58;
+				when 58 =>
+					-- BUF[0] = RAM[IP]
+					IP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0001";
+					DAB_sel		<= "0001";
+					DAB_en		<= '1';
+					state		<= 59;
+				when 59 =>
+					-- DP = BUF
+					BU_rd		<= '1';
+					DP_wr		<= '1';
+					state		<= 60;
+				when 60 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_sel		<= "001";
+					AAR_inc		<= '1';
+					state		<= 1;
 
 				-- Unknown state -> reset CPU
 				when others =>
