@@ -10,9 +10,9 @@ entity DEMUX8_4 is
 		sel			: in std_logic_vector(3 downto 0);
 
 		Din			: in std_logic_vector(7 downto 0);
-		Dout0		: out std_logic_vector(7 downto 0)
-		Dout1		: out std_logic_vector(7 downto 0)
-		Dout2		: out std_logic_vector(7 downto 0)
+		Dout0		: out std_logic_vector(7 downto 0);
+		Dout1		: out std_logic_vector(7 downto 0);
+		Dout2		: out std_logic_vector(7 downto 0);
 		Dout3		: out std_logic_vector(7 downto 0)
 	);
 end entity;
@@ -31,6 +31,7 @@ begin
 			when "0010" => Dout1 <= Din;
 			when "0100" => Dout2 <= Din;
 			when "1000" => Dout3 <= Din;
+			when others =>
 		end case;
 	end process;
 

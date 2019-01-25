@@ -32,12 +32,12 @@ architecture a of BF_CPU is
 	signal IR_rd		: std_logic;
 
 	-- Control lines pointer registers
-	signal IP_wr		: std_logic_vector(3 downto 0);	-- Instruction pointer
-	signal IP_rd		: std_logic_vector(3 downto 0);
-	signal DP_wr		: std_logic_vector(3 downto 0);	-- Data pointer
-	signal DP_rd		: std_logic_vector(3 downto 0);
-	signal SP_wr		: std_logic_vector(3 downto 0);	-- Stack pointer
-	signal SP_rd		: std_logic_vector(3 downto 0);
+	signal IP_wr		: std_logic;	-- Instruction pointer
+	signal IP_rd		: std_logic;
+	signal DP_wr		: std_logic;	-- Data pointer
+	signal DP_rd		: std_logic;
+	signal SP_wr		: std_logic;	-- Stack pointer
+	signal SP_rd		: std_logic;
 
 	-- Direct data lines
 	signal AC_d			: std_logic_vector(7 downto 0);
@@ -62,6 +62,13 @@ architecture a of BF_CPU is
 	signal DAB_d2		: std_logic_vector(7 downto 0);
 	signal DAB_d3		: std_logic_vector(7 downto 0);
 
+	-- Address->Data bridge
+	signal ADB_sel		: std_logic_vector(3 downto 0);
+	signal ADB_d0		: std_logic_vector(7 downto 0);
+	signal ADB_d1		: std_logic_vector(7 downto 0);
+	signal ADB_d2		: std_logic_vector(7 downto 0);
+	signal ADB_d3		: std_logic_vector(7 downto 0);
+
 	signal state		: integer;
 
 begin
@@ -78,7 +85,7 @@ begin
 	e_IR : entity REG8(a)			-- Instruction register
 		port map(CLK, nRST, IR_rd, IR_wr, CPU_D, CPU_D, IR_d);
 
-	-- Data arithmetic (add/sub)
+	-- Data arithmetic (add/sub))
 	e_DAR : entity INC8(a)
 		port map(CLK, nRST, DAR_inc, DAR_dec, AC_d, CPU_d);
 
@@ -101,6 +108,13 @@ begin
 		port map(CLK, nRST, DAB_sel, CPU_D, DAB_d0, DAB_d1, DAB_d2, DAB_d3);
 	CPU_A <= DAB_d3 & DAB_d2 & DAB_d1 & DAB_d0 when (DAB_en = '1') else "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
 
+	-- Address->Data bridge
+	e_ADB : entity MUX8_4(a)
+		port map(CLK, nRST, ADB_sel, ADB_d0, ADB_d1, ADB_d2, ADB_d3, CPU_D);
+	ADB_d0 <= CPU_A(7 downto 0);
+	ADB_d1 <= CPU_A(15 downto 8);
+	ADB_d2 <= CPU_A(23 downto 16);
+	ADB_d3 <= CPU_A(31 downto 24);
 
 	-- CONROL
 	-- ------
@@ -117,12 +131,12 @@ begin
 			AC_rd		<= '0';
 			IR_wr		<= '0';
 			IR_rd		<= '0';
-			IP_wr		<= "0000";
-			IP_rd		<= "0000";
-			DP_wr		<= "0000";
-			DP_rd		<= "0000";
-			SP_wr		<= "0000";
-			SP_rd		<= "0000";
+			IP_wr		<= '0';
+			IP_rd		<= '0';
+			DP_wr		<= '0';
+			DP_rd		<= '0';
+			SP_wr		<= '0';
+			SP_rd		<= '0';
 
 			DAR_inc		<= '0';
 			DAR_dec		<= '0';
@@ -132,6 +146,8 @@ begin
 
 			DAB_sel		<= "0000";
 			DAB_en		<= '0';
+
+			ADB_sel		<= "0000";
 
 			RAM_wr		<= '0';
 			RAM_rd		<= '0';
@@ -170,6 +186,10 @@ begin
 						when x"3" => state <= 5;
 						-- "-" RAM[DP] --
 						when x"4" => state <= 7;
+						-- "[" Conditional forward jump
+						when x"5" => state <= 9;
+						-- "]" Conditional backward jump
+						when x"6" => state <= 14;
 						-- Unknown -> RESET CPU
 						when others =>
 							sRST <= '0';
@@ -219,6 +239,111 @@ begin
 					DAR_dec		<= '1';
 					DP_rd		<= '1';
 					state		<= 1;
+
+				-- Conditional forward jump
+				when 9 =>
+					-- AC = RAM[DP]
+					RAM_rd		<= '1';
+					AC_wr		<= '1';
+					DP_rd		<= '1';
+					state		<= 10;
+				when 10 =>
+					-- Condition check
+					if AC_d = x"00" then
+						-- AC = IP[0]
+						AC_wr		<= '1';
+						ADB_sel		<= "0001";
+						IP_rd		<= '1';
+						state		<= 11;
+					else
+						-- AC = RAM[IP]
+						RAM_rd		<= '1';
+						IP_rd		<= '1';
+						AC_wr		<= '1';
+						state		<= 22;
+				when 11 =>
+					-- RAM[SP] = AC
+					SP_rd		<= '1';
+					RAM_wr		<= '1';
+					AC_rd		<= '1';
+					state		<= 12;
+				when 12 =>
+					-- SP--
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_dec		<= '1';
+					state		<= 13;
+				when 13 =>
+					-- AC = IP[1]
+					AC_wr		<= '1';
+					ADB_sel		<= "0010";
+					IP_rd		<= '1';
+					state		<= 14;
+				when 14 =>
+					-- RAM[SP] = AC
+					SP_rd		<= '1';
+					RAM_wr		<= '1';
+					AC_rd		<= '1';
+					state		<= 15;
+				when 15 =>
+					-- SP--
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_dec		<= '1';
+					state		<= 16;
+				when 16 =>
+					-- AC = IP[2]
+					AC_wr		<= '1';
+					ADB_sel		<= "0100";
+					IP_rd		<= '1';
+					state		<= 17;
+				when 17 =>
+					-- RAM[SP] = AC
+					SP_rd		<= '1';
+					RAM_wr		<= '1';
+					AC_rd		<= '1';
+					state		<= 18;
+				when 18 =>
+					-- SP--
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_dec		<= '1';
+					state		<= 19;
+				when 19 =>
+					-- AC = IP[3]
+					AC_wr		<= '1';
+					ADB_sel		<= "1000";
+					IP_rd		<= '1';
+					state		<= 20;
+				when 20 =>
+					-- RAM[SP] = AC
+					SP_rd		<= '1';
+					RAM_wr		<= '1';
+					AC_rd		<= '1';
+					state		<= 21;
+				when 21 =>
+					-- SP--
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_dec		<= '1';
+					state		<= 1;
+				when 22 =>
+					-- Check for ]
+					if AC_d(3 downto 0) = x"6" then
+						-- Execute ] (which will be NOP)
+						state		<= 1;
+					else
+						-- IP++
+						IP_wr		<= '1';
+						AAR_sel		<= "001";
+						AAR_inc		<= '1';
+						state		<= 23;
+				when 23 =>
+					-- AC = RAM[IP]
+					AC_wr		<= '1';
+					RAM_rd		<= '1';
+					IP_rd		<= '1';
+					state		<= 22;
 
 				-- Unknown state -> reset CPU
 				when others =>
