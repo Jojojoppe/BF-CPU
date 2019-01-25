@@ -21,6 +21,7 @@ architecture a of BF_CPU is
 	signal IO_wr	: std_logic;
 	signal IO_rd	: std_logic;
 	signal HLT		: std_logic;
+
 begin
 
 	nRST <= not(RST);
@@ -33,6 +34,8 @@ begin
 	e_CPU : entity CPU(a)
 		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
 
-	LED <= D;
+	-- IO0
+	e_IO0 : entity REG8(a)
+		port map(CLK, nRST, IO_rd, IO_wr, D, D, LED);
 
 end architecture;

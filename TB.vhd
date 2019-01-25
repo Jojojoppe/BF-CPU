@@ -10,6 +10,8 @@ architecture a of TB is
 	signal CLK		: std_logic := '0';
 	signal RST		: std_logic := '0';
 
+	signal LED		: std_logic_vector(7 downto 0);
+
 	signal nRST		: std_logic;
 	signal D		: std_logic_vector(7 downto 0);
 	signal A		: std_logic_vector(31 downto 0);
@@ -32,6 +34,13 @@ begin
 	-- CPU
 	e_CPU : entity CPU(a)
 		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
+
+	-- IO0
+	e_IO0 : entity REG8(a)
+		port map(CLK, nRST, IO_rd, IO_wr, D, D, LED);
+
+-- -----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
 
 	-- IO
 	p_IO : process (CLK, IO_wr, IO_rd)
