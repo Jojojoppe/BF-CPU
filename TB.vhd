@@ -39,7 +39,7 @@ begin
 		if rising_edge(IO_wr) then
 			report "IO write [" & integer'image(to_integer(unsigned(A))) & "] = " & integer'image(to_integer(unsigned(D)));
 		elsif rising_edge(IO_rd) then
-			report "IO write [" & integer'image(to_integer(unsigned(A))) & "]";
+			report "IO read [" & integer'image(to_integer(unsigned(A))) & "] = " & integer'image(to_integer(unsigned(D)));
 		end if;
 	end process;
 
