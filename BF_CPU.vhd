@@ -38,6 +38,8 @@ architecture a of BF_CPU is
 	signal DP_rd		: std_logic;
 	signal SP_wr		: std_logic;	-- Stack pointer
 	signal SP_rd		: std_logic;
+	signal BU_wr		: std_logic_vector(3 downto 0);	-- Buffer
+	signal BU_rd		: std_logic;
 
 	-- Direct data lines
 	signal AC_d			: std_logic_vector(7 downto 0);
@@ -45,6 +47,7 @@ architecture a of BF_CPU is
 	signal IP_d			: std_logic_vector(31 downto 0);
 	signal DP_d			: std_logic_vector(31 downto 0);
 	signal SP_d			: std_logic_vector(31 downto 0);
+	signal BU_d			: std_logic_vector(31 downto 0);
 
 	-- Arithmetic control lines
 	signal DAR_inc		: std_logic;
@@ -102,6 +105,8 @@ begin
 		port map(CLK, nRST, DP_rd, DP_wr, CPU_A, CPU_A, DP_d);
 	e_SP : entity REG32(a)			-- Data pointer
 		port map(CLK, nRST, SP_rd, SP_wr, CPU_A, CPU_A, SP_d);
+	e_BU : entity REG8_32(a)
+		port map(CLK, nRST, BU_rd, BU_wr, CPU_A, CPU_A, BU_d);
 
 	-- Data->Address bridge
 	e_DAB : entity DEMUX8_4(a)
@@ -137,6 +142,8 @@ begin
 			DP_rd		<= '0';
 			SP_wr		<= '0';
 			SP_rd		<= '0';
+			BU_wr		<= "0000";
+			BU_rd		<= '0';
 
 			DAR_inc		<= '0';
 			DAR_dec		<= '0';
@@ -189,7 +196,7 @@ begin
 						-- "[" Conditional forward jump
 						when x"5" => state <= 9;
 						-- "]" Conditional backward jump
-						when x"6" => state <= 14;
+						when x"6" => state <= 24;
 						-- Unknown -> RESET CPU
 						when others =>
 							sRST <= '0';
@@ -344,6 +351,100 @@ begin
 					RAM_rd		<= '1';
 					IP_rd		<= '1';
 					state		<= 22;
+
+				-- Conditional backwards jump
+				when 24 =>
+					-- AC = RAM[DP]
+					AC_wr		<= '1';
+					RAM_rd		<= '1';
+					DP_rd		<= '1';
+					state		<= 25;
+				when 25 =>
+					-- Condition check
+					if AC_d = x"00" then
+						-- Execute next instruction
+						state		<= 1;
+					else
+						-- SP++
+						SP_wr		<= '1';
+						AAR_sel		<= "100";
+						AAR_inc		<= '1';
+						state		<= 26;
+				when 26 =>
+					-- AC = RAM[SP]
+					AC_wr		<= '1';
+					SP_rd		<= '1';
+					RAM_rd		<= '1';
+					state		<= 27;
+				when 27 =>
+					-- BUF[3] = AC
+					AC_rd		<= '1';
+					BU_wr		<= "1000";
+					DAB_sel		<= "1000";
+					DAB_en		<= '1';
+					state		<= 28;
+				when 28 =>
+					-- SP++
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_inc		<= '1';
+					state		<= 29;
+				when 29 =>
+					-- AC = RAM[SP]
+					AC_wr		<= '1';
+					SP_rd		<= '1';
+					RAM_rd		<= '1';
+					state		<= 30;
+				when 30 =>
+					-- BUF[2] = AC
+					AC_rd		<= '1';
+					BU_wr		<= "0100";
+					DAB_sel		<= "0100";
+					DAB_en		<= '1';
+					state		<= 31;
+				when 31 =>
+					-- SP++
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_inc		<= '1';
+					state		<= 32;
+				when 32 =>
+					-- AC = RAM[SP]
+					AC_wr		<= '1';
+					SP_rd		<= '1';
+					RAM_rd		<= '1';
+					state		<= 33;
+				when 33 =>
+					-- BUF[1] = AC
+					AC_rd		<= '1';
+					BU_wr		<= "0010";
+					DAB_sel		<= "0010";
+					DAB_en		<= '1';
+					state		<= 34;
+				when 34 =>
+					-- SP++
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_inc		<= '1';
+					state		<= 35;
+				when 35 =>
+					-- AC = RAM[SP]
+					AC_wr		<= '1';
+					SP_rd		<= '1';
+					RAM_rd		<= '1';
+					state		<= 36;
+				when 36 =>
+					-- BUF[0] = AC
+					AC_rd		<= '1';
+					BU_wr		<= "0001";
+					DAB_sel		<= "0001";
+					DAB_en		<= '1';
+					state		<= 37;
+				when 37 =>
+					-- IP = BUF
+					BU_rd		<= '1';
+					IP_wr		<= '1';
+					state		<= 1;
 
 				-- Unknown state -> reset CPU
 				when others =>
