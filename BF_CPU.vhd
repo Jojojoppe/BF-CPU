@@ -64,6 +64,7 @@ architecture a of BF_CPU is
 	signal DAB_d1		: std_logic_vector(7 downto 0);
 	signal DAB_d2		: std_logic_vector(7 downto 0);
 	signal DAB_d3		: std_logic_vector(7 downto 0);
+	signal BU_Din		: std_logic_vector(31 downto 0);
 
 	-- Address->Data bridge
 	signal ADB_sel		: std_logic_vector(3 downto 0);
@@ -106,12 +107,12 @@ begin
 	e_SP : entity REG32(a)			-- Data pointer
 		port map(CLK, nRST, SP_rd, SP_wr, CPU_A, CPU_A, SP_d);
 	e_BU : entity REG8_32(a)
-		port map(CLK, nRST, BU_rd, BU_wr, CPU_A, CPU_A, BU_d);
+		port map(CLK, nRST, BU_rd, BU_wr, BU_Din, CPU_A, BU_d);
 
 	-- Data->Address bridge
 	e_DAB : entity DEMUX8_4(a)
 		port map(CLK, nRST, DAB_sel, CPU_D, DAB_d0, DAB_d1, DAB_d2, DAB_d3);
-	CPU_A <= DAB_d3 & DAB_d2 & DAB_d1 & DAB_d0 when (DAB_en = '1') else "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
+	BU_Din <= DAB_d3 & DAB_d2 & DAB_d1 & DAB_d0 when (DAB_en = '1') else "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
 
 	-- Address->Data bridge
 	e_ADB : entity MUX8_4(a)
@@ -371,35 +372,39 @@ begin
 						AAR_inc		<= '1';
 						state		<= 26;
 				when 26 =>
-					-- AC = RAM[SP]
-					AC_wr		<= '1';
+					-- BUF[3] = RAM[SP]
 					SP_rd		<= '1';
 					RAM_rd		<= '1';
-					state		<= 27;
-				when 27 =>
-					-- BUF[3] = AC
-					AC_rd		<= '1';
 					BU_wr		<= "1000";
 					DAB_sel		<= "1000";
 					DAB_en		<= '1';
-					state		<= 28;
-				when 28 =>
+					state		<= 27;
+				when 27 =>
 					-- SP++
 					SP_wr		<= '1';
 					AAR_sel		<= "100";
 					AAR_inc		<= '1';
-					state		<= 29;
-				when 29 =>
-					-- AC = RAM[SP]
-					AC_wr		<= '1';
+					state		<= 28;
+				when 28 =>
+					-- BUF[2] = RAM[SP]
 					SP_rd		<= '1';
 					RAM_rd		<= '1';
-					state		<= 30;
-				when 30 =>
-					-- BUF[2] = AC
-					AC_rd		<= '1';
 					BU_wr		<= "0100";
 					DAB_sel		<= "0100";
+					DAB_en		<= '1';
+					state		<= 29;
+				when 29 =>
+					-- SP++
+					SP_wr		<= '1';
+					AAR_sel		<= "100";
+					AAR_inc		<= '1';
+					state		<= 30;
+				when 30 =>
+					-- BUF[1] = RAM[SP]
+					SP_rd		<= '1';
+					RAM_rd		<= '1';
+					BU_wr		<= "0010";
+					DAB_sel		<= "0010";
 					DAB_en		<= '1';
 					state		<= 31;
 				when 31 =>
@@ -409,38 +414,14 @@ begin
 					AAR_inc		<= '1';
 					state		<= 32;
 				when 32 =>
-					-- AC = RAM[SP]
-					AC_wr		<= '1';
+					-- BUF[0] = RAM[SP]
 					SP_rd		<= '1';
 					RAM_rd		<= '1';
-					state		<= 33;
-				when 33 =>
-					-- BUF[1] = AC
-					AC_rd		<= '1';
-					BU_wr		<= "0010";
-					DAB_sel		<= "0010";
-					DAB_en		<= '1';
-					state		<= 34;
-				when 34 =>
-					-- SP++
-					SP_wr		<= '1';
-					AAR_sel		<= "100";
-					AAR_inc		<= '1';
-					state		<= 35;
-				when 35 =>
-					-- AC = RAM[SP]
-					AC_wr		<= '1';
-					SP_rd		<= '1';
-					RAM_rd		<= '1';
-					state		<= 36;
-				when 36 =>
-					-- BUF[0] = AC
-					AC_rd		<= '1';
 					BU_wr		<= "0001";
 					DAB_sel		<= "0001";
 					DAB_en		<= '1';
-					state		<= 37;
-				when 37 =>
+					state		<= 33;
+				when 33 =>
 					-- IP = BUF
 					BU_rd		<= '1';
 					IP_wr		<= '1';
