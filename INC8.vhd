@@ -19,12 +19,12 @@ architecture a of INC8 is
 begin
 
 
-	process(CLK, RES)
+	process(RES, inc, dec, Din)
 		variable DATA : integer;
 	begin
 		if RES='1' then
 			DATA := 0;
-		elsif rising_edge(CLK) then
+		else
 			DATA := to_integer(unsigned(Din));
 
 			if inc='1' then
