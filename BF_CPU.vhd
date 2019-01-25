@@ -83,6 +83,10 @@ begin
 	-- DEBUG LEDS
 	LED <= CPU_D;
 
+	-- RAM
+	e_RAM : entity RAM(a)
+		port map(CLK, nRST, RAM_rd, RAM_wr, CPU_D, CPU_D, CPU_A);
+
 	-- Registers
 	e_AC : entity REG8(a)			-- Accumulator
 		port map(CLK, nRST, AC_rd, AC_wr, CPU_D, CPU_D, AC_d);
@@ -130,7 +134,7 @@ begin
 			state <= 0;	-- Reset the CPU
 
 		-- Control loop
-		elsif rising_edge(CLK) then
+		elsif falling_edge(CLK) then
 			sRST		<= '0';
 
 			AC_wr		<= '0';
@@ -185,7 +189,7 @@ begin
 					-- Decode opcode
 					case IR_d(3 downto 0) is
 						-- " " NOP
-						when x"0" => state <= 1;
+						when x"0" => state <= 0;
 						-- ">" DP++
 						when x"1" => state <= 3;
 						-- "<" DP--
@@ -275,6 +279,7 @@ begin
 						IP_rd		<= '1';
 						AC_wr		<= '1';
 						state		<= 22;
+					end if;
 				when 11 =>
 					-- RAM[SP] = AC
 					SP_rd		<= '1';
@@ -352,6 +357,7 @@ begin
 						AAR_sel		<= "001";
 						AAR_inc		<= '1';
 						state		<= 23;
+					end if;
 				when 23 =>
 					-- AC = RAM[IP]
 					AC_wr		<= '1';
@@ -377,6 +383,7 @@ begin
 						AAR_sel		<= "100";
 						AAR_inc		<= '1';
 						state		<= 26;
+					end if;
 				when 26 =>
 					-- BUF[3] = RAM[SP]
 					SP_rd		<= '1';

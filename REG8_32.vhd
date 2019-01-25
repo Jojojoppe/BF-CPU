@@ -8,8 +8,8 @@ entity REG8_32 is
 		CLK			: in std_logic;
 		RES			: in std_logic;
 
-		rd			: in std_logic_vector(3 downto 0);
-		wr			: in std_logic;
+		rd			: in std_logic;
+		wr			: in std_logic_vector(3 downto 0);
 
 		Din			: in std_logic_vector(31 downto 0);
 		Dout		: out std_logic_vector(31 downto 0);
