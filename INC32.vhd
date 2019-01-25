@@ -20,7 +20,7 @@ architecture a of INC32 is
 begin
 
 	D <= Din;
-	D <= "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL";
+--	D <= "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL";
 
 	process(RES, inc, dec, CLK, D)
 		variable DATA : integer;

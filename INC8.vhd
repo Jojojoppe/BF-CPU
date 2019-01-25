@@ -20,7 +20,7 @@ architecture a of INC8 is
 begin
 
 	D <= Din;
-	D <= "LLLLLLLL";
+--	D <= "LLLLLLLL";
 
 	process(RES, inc, dec, CLK, D)
 		variable DATA : integer;

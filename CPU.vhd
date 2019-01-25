@@ -105,8 +105,8 @@ begin
 	iwr <= IO_wr;
 	ird <= IO_rd;
 
-	CPU_D <= "LLLLLLLL";
-	CPU_A <= "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL";
+--	CPU_D <= "LLLLLLLL";
+--	CPU_A <= "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL";
 
 	-- RAM
 --	e_RAM : entity RAM(a)

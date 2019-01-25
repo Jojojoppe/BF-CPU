@@ -21,7 +21,7 @@ architecture a of RAM is
 	signal RAM: RAM_ARRAY := (
 		x"09",x"00",x"00",x"00",
 		x"7f",x"08",x"00",x"00",
-		x"00",x"d0",x"0b",x"05",
+		x"00",x"d0",x"0b",x"25",
 		x"0c",x"aa",x"0d",x"00",
 		x"0f",x"0f",x"00",x"00",
 		x"00",x"00",x"00",x"00",

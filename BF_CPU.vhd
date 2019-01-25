@@ -33,4 +33,6 @@ begin
 	e_CPU : entity CPU(a)
 		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
 
+	LED <= D;
+
 end architecture;
