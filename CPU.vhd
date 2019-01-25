@@ -86,11 +86,19 @@ begin
 	-- Internal main signals
 	nRST <= RST or sRST;
 
+	-- Connections with outher world
 	A <= CPU_A;
-	Dout <= CPU_D;
+	Dout <= CPU_D when (RAM_wr = '1') else "ZZZZZZZZ";
 	CPU_D <= Din when (RAM_rd = '1') else "ZZZZZZZZ";
 	wr <= RAM_wr;
 	rd <= RAM_rd;
+
+	CPU_D <= "LLLLLLLL";
+	CPU_A <= "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL";
+
+	-- RAM
+--	e_RAM : entity RAM(a)
+--		port map(CLK, nRST, RAM_rd, RAM_wr, CPU_D, CPU_D, CPU_A);
 
 	-- Registers
 	e_AC : entity REG8(a)			-- Accumulator

@@ -25,7 +25,7 @@ begin
 	Dout2 <= "LLLLLLLL";
 	Dout3 <= "LLLLLLLL";
 
-	p_DEMUX : process(CLK)
+	p_DEMUX : process(Din, sel)
 	begin
 		case sel is
 			when "0001" => 

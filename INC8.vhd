@@ -16,16 +16,19 @@ entity INC8 is
 end entity;
 
 architecture a of INC8 is
+	signal D		: std_logic_vector(7 downto 0);
 begin
 
+	D <= Din;
+	D <= "LLLLLLLL";
 
-	process(RES, inc, dec, CLK, Din)
+	process(RES, inc, dec, CLK, D)
 		variable DATA : integer;
 	begin
 		if RES='1' then
 			DATA := 0;
 		else
-			DATA := to_integer(unsigned(Din));
+			DATA := to_integer(unsigned(D));
 
 			if inc='1' then
 				DATA := DATA + 1;
