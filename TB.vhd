@@ -14,6 +14,8 @@ architecture a of TB is
 	signal A		: std_logic_vector(31 downto 0);
 	signal RAM_wr	: std_logic;
 	signal RAM_rd	: std_logic;
+	signal IO_wr	: std_logic;
+	signal IO_rd	: std_logic;
 	signal HLT		: std_logic;
 
 	-- Constants
@@ -28,7 +30,7 @@ begin
 
 	-- CPU
 	e_CPU : entity CPU(a)
-		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, HLT);
+		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
 
 	-- Clock generation
 	CLK_process :process

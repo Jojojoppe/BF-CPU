@@ -13,6 +13,9 @@ entity CPU is
 
 		wr			: out std_logic;
 		rd			: out std_logic;
+		iwr			: out std_logic;
+		ird			: out std_logic;
+
 		HLT			: out std_logic
 	);
 end entity;
@@ -30,12 +33,18 @@ architecture a of CPU is
 	signal RAM_rd		: std_logic;
 	signal RAM_wr		: std_logic;
 
+	-- IO control lines
+	signal IO_rd		: std_logic;
+	signal IO_wr		: std_logic;
+
 	-- Control lines registers
 	signal AC_wr		: std_logic;	-- Accumulator
 	signal AC_rd		: std_logic;
 	signal AC_clr		: std_logic;
 	signal IR_wr		: std_logic;	-- Instruction register
 	signal IR_rd		: std_logic;
+	signal IOR_wr		: std_logic;
+	signal IOR_rd		: std_logic;
 
 	-- Control lines pointer registers
 	signal IP_wr		: std_logic;	-- Instruction pointer
@@ -54,6 +63,7 @@ architecture a of CPU is
 	signal DP_d			: std_logic_vector(31 downto 0);
 	signal SP_d			: std_logic_vector(31 downto 0);
 	signal BU_d			: std_logic_vector(31 downto 0);
+	signal IOR_d			: std_logic_vector(7 downto 0);
 
 	-- Arithmetic control lines
 	signal DAR_inc		: std_logic;
@@ -88,8 +98,8 @@ begin
 
 	-- Connections with outher world
 	A <= CPU_A;
-	Dout <= CPU_D when (RAM_wr = '1') else "ZZZZZZZZ";
-	CPU_D <= Din when (RAM_rd = '1') else "ZZZZZZZZ";
+	Dout <= CPU_D when ((RAM_wr = '1') or (IO_wr = '1')) else "ZZZZZZZZ";
+	CPU_D <= Din when ((RAM_rd = '1') or (IO_rd = '1')) else "ZZZZZZZZ";
 	wr <= RAM_wr;
 	rd <= RAM_rd;
 
@@ -105,6 +115,10 @@ begin
 		port map(CLK, nRST or AC_clr, AC_rd, AC_wr, CPU_D, CPU_D, AC_d);
 	e_IR : entity REG8(a)			-- Instruction register
 		port map(CLK, nRST, IR_rd, IR_wr, CPU_D, CPU_D, IR_d);
+
+	e_IOR : entity REG8(a)
+		port map(CLK, nRST, IOR_rd, IOR_wr, CPU_D, CPU_D, IOR_d);
+	CPU_A <= x"000000" & IOR_d WHEN ((IO_wr = '1') or (IO_rd = '1')) else "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
 
 	-- Data arithmetic (add/sub))
 	e_DAR : entity INC8(a)
@@ -162,6 +176,8 @@ begin
 			SP_rd		<= '0';
 			BU_wr		<= "0000";
 			BU_rd		<= '0';
+			IOR_wr		<= '0';
+			IOR_rd		<= '0';
 
 			AC_clr		<= '0';
 
@@ -178,6 +194,9 @@ begin
 
 			RAM_wr		<= '0';
 			RAM_rd		<= '0';
+
+			IO_wr		<= '0';
+			IO_rd		<= '0';
 
 			HLT			<= '0';
 
@@ -229,6 +248,12 @@ begin
 						when x"a" => state <= 61;
 						-- "L" Save literal to RAM[DP]
 						when x"b" => state <= 63;
+						-- "O" Set IO registers
+						when x"c" => state <= 67;
+						-- "." Output
+						when x"d" => state <= 69;
+						-- "," Input
+						when x"e" => state <= 71;
 						-- "H" Halt
 						when x"f" => state <= 66;
 						-- Unknown -> RESET CPU
@@ -700,6 +725,46 @@ begin
 				-- Halt
 				when 66 =>
 					HLT			<= '1';
+
+				-- Set IO registers
+				when 67 =>
+					-- IOR = RAM[IP]
+					RAM_rd		<= '1';
+					IOR_wr		<= '1';
+					IP_rd		<= '1';
+					state		<= 68;
+				when 68 =>
+					-- IP++
+					IP_wr		<= '1';
+					AAR_inc		<= '1';
+					AAR_sel		<= "0001";
+					state		<= 1;
+
+				-- Output
+				when 69 =>
+					-- AC = RAM[DP]
+					AC_wr		<= '1';
+					RAM_rd		<= '1';
+					DP_rd		<= '1';
+					state		<= 70;
+				when 70 =>
+					-- Output AC
+					AC_rd		<= '1';
+					IO_wr		<= '1';
+					state		<= 1;
+
+				-- Input
+				when 71 =>
+					-- Input AC
+					AC_wr		<= '1';
+					IO_rd		<= '1';
+					state		<= 72;
+				when 72 =>
+					-- RAM[DP] = AC
+					AC_rd		<= '1';
+					RAM_wr		<= '1';
+					DP_rd		<= '1';
+					state		<= 1;
 
 				-- Unknown state -> reset CPU
 				when others =>
