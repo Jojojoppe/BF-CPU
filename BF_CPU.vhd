@@ -7,6 +7,8 @@ entity BF_CPU is
 		CLK			: in std_logic;
 		RST			: in std_logic;
 
+		HLT			: out std_logic;
+
 		-- Debug output
 		LED			: out std_logic_vector(7 downto 0)
 	);
@@ -56,7 +58,7 @@ architecture a of BF_CPU is
 	signal AAR_inc		: std_logic;
 	signal AAR_dec		: std_logic;
 	signal AAR_adr		: std_logic_vector(31 downto 0);
-	signal AAR_sel		: std_logic_vector(2 downto 0); -- Address arithmetic selector [IP, DP, SP]
+	signal AAR_sel		: std_logic_vector(3 downto 0); -- Address arithmetic selector [IP, DP, SP, BU]
 
 	-- Data->Address bridge
 	signal DAB_sel		: std_logic_vector(3 downto 0);
@@ -99,8 +101,8 @@ begin
 		port map(CLK, nRST, DAR_inc, DAR_dec, AC_d, CPU_d);
 
 	-- Address arithmetic (add/sub)
-	e_AARMux : entity MUX32_3(a)
-		port map(CLK, nRST, AAR_sel, IP_d, DP_d, SP_d, AAR_adr);
+	e_AARMux : entity MUX32_4(a)
+		port map(CLK, nRST, AAR_sel, IP_d, DP_d, SP_d, BU_d, AAR_adr);
 	e_AAR : entity INC32(a)
 		port map(CLK, nRST, AAR_inc, AAR_dec, AAR_adr, CPU_A);
 
@@ -157,7 +159,7 @@ begin
 			DAR_dec		<= '0';
 			AAR_inc		<= '0';
 			AAR_dec		<= '0';
-			AAR_sel		<= "000";
+			AAR_sel		<= "0000";
 
 			DAB_sel		<= "0000";
 			DAB_en		<= '0';
@@ -166,6 +168,8 @@ begin
 
 			RAM_wr		<= '0';
 			RAM_rd		<= '0';
+
+			HLT			<= '0';
 
 			case state is
 
@@ -187,7 +191,7 @@ begin
 					-- IP++
 					IP_wr		<= '1';
 					AAR_inc		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 
 					-- Decode opcode
 					case IR_d(3 downto 0) is
@@ -215,6 +219,8 @@ begin
 						when x"a" => state <= 61;
 						-- "L" Save literal to RAM[DP]
 						when x"b" => state <= 63;
+						-- "H" Halt
+						when x"f" => state <= 66;
 						-- Unknown -> RESET CPU
 						when others =>
 							sRST <= '0';
@@ -223,22 +229,25 @@ begin
 
 				-- Increase DP
 				when 3 =>
+					report ">";
 					-- DP++
 					DP_wr		<= '1';
-					AAR_sel		<= "010";
+					AAR_sel		<= "0010";
 					AAR_inc		<= '1';
 					state		<= 1;
 
 				-- Decrease DP
 				when 4 =>
+					report "<";
 					-- DP--
 					DP_wr		<= '1';
-					AAR_sel		<= "010";
+					AAR_sel		<= "0010";
 					AAR_dec		<= '1';
 					state		<= 1;
 
 				-- Increase RAM[DP]
 				when 5 =>
+					report "+";
 					-- AC = RAM[DP]
 					RAM_rd		<= '1';
 					AC_wr		<= '1';
@@ -253,6 +262,7 @@ begin
 
 				-- Decrease RAM[DP]
 				when 7 =>
+					report "-";
 					-- AC = RAM[DP]
 					RAM_rd		<= '1';
 					AC_wr		<= '1';
@@ -267,6 +277,7 @@ begin
 
 				-- Conditional forward jump
 				when 9 =>
+					report "[";
 					-- AC = RAM[DP]
 					RAM_rd		<= '1';
 					AC_wr		<= '1';
@@ -275,17 +286,17 @@ begin
 				when 10 =>
 					-- Condition check
 					if AC_d = x"00" then
-						-- AC = IP[0]
-						AC_wr		<= '1';
-						ADB_sel		<= "0001";
-						IP_rd		<= '1';
-						state		<= 11;
-					else
 						-- AC = RAM[IP]
 						RAM_rd		<= '1';
 						IP_rd		<= '1';
 						AC_wr		<= '1';
 						state		<= 22;
+					else
+						-- AC = IP[0]
+						AC_wr		<= '1';
+						ADB_sel		<= "0001";
+						IP_rd		<= '1';
+						state		<= 11;
 					end if;
 				when 11 =>
 					-- RAM[SP] = AC
@@ -296,7 +307,7 @@ begin
 				when 12 =>
 					-- SP--
 					SP_wr		<= '1';
-					AAR_sel		<= "100";
+					AAR_sel		<= "0100";
 					AAR_dec		<= '1';
 					state		<= 13;
 				when 13 =>
@@ -314,7 +325,7 @@ begin
 				when 15 =>
 					-- SP--
 					SP_wr		<= '1';
-					AAR_sel		<= "100";
+					AAR_sel		<= "0100";
 					AAR_dec		<= '1';
 					state		<= 16;
 				when 16 =>
@@ -332,7 +343,7 @@ begin
 				when 18 =>
 					-- SP--
 					SP_wr		<= '1';
-					AAR_sel		<= "100";
+					AAR_sel		<= "0100";
 					AAR_dec		<= '1';
 					state		<= 19;
 				when 19 =>
@@ -350,7 +361,7 @@ begin
 				when 21 =>
 					-- SP--
 					SP_wr		<= '1';
-					AAR_sel		<= "100";
+					AAR_sel		<= "0100";
 					AAR_dec		<= '1';
 					state		<= 1;
 				when 22 =>
@@ -361,7 +372,7 @@ begin
 					else
 						-- IP++
 						IP_wr		<= '1';
-						AAR_sel		<= "001";
+						AAR_sel		<= "0001";
 						AAR_inc		<= '1';
 						state		<= 23;
 					end if;
@@ -374,6 +385,7 @@ begin
 
 				-- Conditional backwards jump
 				when 24 =>
+					report "]";
 					-- AC = RAM[DP]
 					AC_wr		<= '1';
 					RAM_rd		<= '1';
@@ -387,7 +399,7 @@ begin
 					else
 						-- SP++
 						SP_wr		<= '1';
-						AAR_sel		<= "100";
+						AAR_sel		<= "0100";
 						AAR_inc		<= '1';
 						state		<= 26;
 					end if;
@@ -402,7 +414,7 @@ begin
 				when 27 =>
 					-- SP++
 					SP_wr		<= '1';
-					AAR_sel		<= "100";
+					AAR_sel		<= "0100";
 					AAR_inc		<= '1';
 					state		<= 28;
 				when 28 =>
@@ -416,7 +428,7 @@ begin
 				when 29 =>
 					-- SP++
 					SP_wr		<= '1';
-					AAR_sel		<= "100";
+					AAR_sel		<= "0100";
 					AAR_inc		<= '1';
 					state		<= 30;
 				when 30 =>
@@ -430,7 +442,7 @@ begin
 				when 31 =>
 					-- SP++
 					SP_wr		<= '1';
-					AAR_sel		<= "100";
+					AAR_sel		<= "0100";
 					AAR_inc		<= '1';
 					state		<= 32;
 				when 32 =>
@@ -442,13 +454,15 @@ begin
 					DAB_en		<= '1';
 					state		<= 33;
 				when 33 =>
-					-- IP = BUF
-					BU_rd		<= '1';
+					-- IP = BUF-1
 					IP_wr		<= '1';
+					AAR_sel		<= "1000";
+					AAR_dec		<= '1';
 					state		<= 1;
 
 				-- Load IP
 				when 34 =>
+					report "I";
 					-- BUF[3] = RAM[IP]
 					IP_rd		<= '1';
 					RAM_rd		<= '1';
@@ -459,7 +473,7 @@ begin
 				when 35 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 36;
 				when 36 =>
@@ -473,7 +487,7 @@ begin
 				when 37 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 38;
 				when 38 =>
@@ -487,7 +501,7 @@ begin
 				when 39 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 40;
 				when 40 =>
@@ -506,13 +520,14 @@ begin
 				when 51 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 1;
 
 
 				-- Load DP
 				when 42 =>
+					report "D";
 					-- BUF[3] = RAM[IP]
 					IP_rd		<= '1';
 					RAM_rd		<= '1';
@@ -523,7 +538,7 @@ begin
 				when 43 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 44;
 				when 44 =>
@@ -537,7 +552,7 @@ begin
 				when 45 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 46;
 				when 46 =>
@@ -551,7 +566,7 @@ begin
 				when 47 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 48;
 				when 48 =>
@@ -570,12 +585,13 @@ begin
 				when 50 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 1;
 
 				-- Load SP
 				when 52 =>
+					report "S";
 					-- BUF[3] = RAM[IP]
 					IP_rd		<= '1';
 					RAM_rd		<= '1';
@@ -586,7 +602,7 @@ begin
 				when 53 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 54;
 				when 54 =>
@@ -600,7 +616,7 @@ begin
 				when 55 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 56;
 				when 56 =>
@@ -614,7 +630,7 @@ begin
 				when 57 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 58;
 				when 58 =>
@@ -633,12 +649,13 @@ begin
 				when 60 =>
 					-- IP++
 					IP_wr		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					AAR_inc		<= '1';
 					state		<= 1;
 
 				-- Reset RAM[DP]
 				when 61 =>
+					report "C";
 					-- AC = 0
 					AC_clr		<= '1';
 					state		<= 62;
@@ -651,6 +668,7 @@ begin
 
 				-- Save literal to RAM[DP]
 				when 63 =>
+					report "L";
 					-- AC = RAM[IP]
 					AC_wr		<= '1';
 					RAM_rd		<= '1';
@@ -660,7 +678,7 @@ begin
 					-- IP++
 					IP_wr		<= '1';
 					AAR_inc		<= '1';
-					AAR_sel		<= "001";
+					AAR_sel		<= "0001";
 					state		<= 65;
 				when 65 =>
 					-- RAM[DP] = AC
@@ -668,6 +686,10 @@ begin
 					AC_rd		<= '1';
 					DP_rd		<= '1';
 					state		<= 1;
+
+				-- Halt
+				when 66 =>
+					HLT			<= '1';
 
 				-- Unknown state -> reset CPU
 				when others =>

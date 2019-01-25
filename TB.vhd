@@ -9,15 +9,16 @@ architecture a of TB is
 	signal CLK		: std_logic := '0';
 	signal RST		: std_logic := '0';
 
+	signal HLT		: std_logic;
+
 	signal LED		: std_logic_vector(7 downto 0) := x"00";
 
 	-- Constants
 	constant CLK_PERIOD : time := 10 ns;	--100MHz clock
-	constant RUNTIME	: time := 1000 ns;
 begin
 
 	e_bfcpu : entity BF_CPU(a)
-		port map(CLK, RST, LED);
+		port map(CLK, RST, HLT, LED);
 
 	-- Clock generation
 	CLK_process :process
@@ -38,10 +39,11 @@ begin
 	end process;
 
 	-- Stop process
-	STOP_process : process
+	STOP_process : process(HLT)
 	begin
-		wait for RUNTIME;
-		report "Simulation finished successfully" severity FAILURE;
+		if rising_edge(HLT) then
+			report "Simulation finished successfully" severity FAILURE;
+		end if;
 	end process;
 
 end architecture;

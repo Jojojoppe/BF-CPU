@@ -20,9 +20,9 @@ architecture a of RAM is
 	type RAM_ARRAY is array (0 to 127) of std_logic_vector (7 downto 0);
 	signal RAM: RAM_ARRAY := (
 		x"09",x"00",x"00",x"00",
-		x"ef",x"08",x"00",x"00",
-		x"00",x"d0",x"00",x"00",
-		x"00",x"00",x"00",x"00",
+		x"7f",x"08",x"00",x"00",
+		x"00",x"d0",x"0b",x"05",
+		x"05",x"04",x"06",x"0f",
 		x"00",x"00",x"00",x"00",
 		x"00",x"00",x"00",x"00",
 		x"00",x"00",x"00",x"00",

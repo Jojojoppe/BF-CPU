@@ -34,7 +34,7 @@ begin
 			end if;
 
 			if inc='1' or dec='1' then
-				Dout <= std_logic_vector(to_unsigned(DATA, Dout'length));
+				Dout <= std_logic_vector(to_unsigned(DATA, 32));
 			else
 				Dout <= "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ";
 			end if;
