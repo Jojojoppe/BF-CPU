@@ -19,7 +19,7 @@ architecture a of INC8 is
 begin
 
 
-	process(RES, inc, dec, Din)
+	process(RES, inc, dec, CLK, Din)
 		variable DATA : integer;
 	begin
 		if RES='1' then

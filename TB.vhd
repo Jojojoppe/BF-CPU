@@ -9,16 +9,26 @@ architecture a of TB is
 	signal CLK		: std_logic := '0';
 	signal RST		: std_logic := '0';
 
+	signal nRST		: std_logic;
+	signal D		: std_logic_vector(7 downto 0);
+	signal A		: std_logic_vector(31 downto 0);
+	signal RAM_wr	: std_logic;
+	signal RAM_rd	: std_logic;
 	signal HLT		: std_logic;
-
-	signal LED		: std_logic_vector(7 downto 0) := x"00";
 
 	-- Constants
 	constant CLK_PERIOD : time := 10 ns;	--100MHz clock
 begin
 
-	e_bfcpu : entity BF_CPU(a)
-		port map(CLK, RST, HLT, LED);
+	nRST <= not(RST);
+
+	-- RAM
+	e_RAM : entity RAM(a)
+		port map(CLK, nRST, RAM_rd, RAM_wr, D, D, A);
+
+	-- CPU
+	e_CPU : entity CPU(a)
+		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, HLT);
 
 	-- Clock generation
 	CLK_process :process

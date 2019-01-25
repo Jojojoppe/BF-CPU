@@ -19,7 +19,7 @@ architecture a of INC32 is
 begin
 
 
-	process(RES, Din, inc, dec)
+	process(RES, inc, dec, CLK, Din)
 		variable DATA : integer;
 	begin
 		if RES='1' then
