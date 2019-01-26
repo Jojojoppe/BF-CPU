@@ -17,7 +17,7 @@ end entity;
 
 architecture a of BF_CPU is
 	signal nRST		: std_logic;
-	
+
 	signal A		: std_logic_vector(31 downto 0);
 	signal D		: std_logic_vector(7 downto 0);
 
@@ -37,7 +37,7 @@ begin
 	D_HLT <= not(HLT);
 	nRST <= not(RST);
 
-	e_FDIV : entity FDIV(a) generic map(100000000, 2)
+	e_FDIV : entity FDIV(a) generic map(100000000, 5)
 		port map(CLK, sCLK, nRST);
 
 	e_RAM : entity ip_RAM(ip_RAM_a)
