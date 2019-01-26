@@ -303,21 +303,18 @@ begin
 					operation := R32isRAM_R32plus;
 					A := x"01"; -- IP
 					B := x"01"; -- IP
-					state <= fetch;
 
 				-- DP = *IP
 				when dD =>
 					operation := R32isRAM_R32plus;
 					A := x"02"; -- DD
 					B := x"01"; -- IP
-					state <= fetch;
 
 				-- SP = *IP
 				when dS =>
 					operation := R32isRAM_R32plus;
 					A := x"04"; -- SP
 					B := x"01"; -- IP
-					state <= fetch;
 
 				-- *DP = 0
 				when dC =>
@@ -431,7 +428,7 @@ begin
 
 						when increment =>
 							reg32_wr <= B(2 downto 0);
-							AAR_sel <= B(2 downto 0);
+							AAR_sel <= B(3 downto 0);
 							AAR_inc <= '1';
 
 							if R32isRAM_R32plus_BUFcnt=8 then
@@ -447,9 +444,11 @@ begin
 							R32isRAM_R32plus_state <= fetch;
 							R32isRAM_R32plus_BUFcnt <= 1;
 							operation := EX;
+							state <= fetch;
 
 						when others =>
 							operation := EX;
+							state <= fetch;
 					end case;
 
 				-- REG32(A 3b) = RAM[REG32(B 3b)] pointer decreasing
@@ -465,13 +464,13 @@ begin
 
 						when decrement =>
 							reg32_wr <= B(2 downto 0);
-							AAR_sel <= B(2 downto 0);
+							AAR_sel <= B(3 downto 0);
 							AAR_dec <= '1';
 
 							if R32isRAM_R32min_BUFcnt=1 then
 								R32isRAM_R32min_state <= store;
 							else
-								R32isRAM_R32min_BUFcnt <= R32isRAM_R32min_BUFcnt / 2;
+								R32isRAM_R32min_BUFcnt <= R32isRAM_R32min_BUFcnt * 2;
 								R32isRAM_R32min_state <= fetch;
 							end if;
 
@@ -481,9 +480,13 @@ begin
 							R32isRAM_R32min_state <= fetch;
 							R32isRAM_R32min_BUFcnt <= 8;
 							operation := EX;
+							state <= fetch;
+							state <= fetch;
 
 						when others =>
 							operation := EX;
+							state <= fetch;
+							state <= fetch;
 					end case;
 
 
@@ -504,18 +507,21 @@ begin
 							if RAM_R32isR32min_BUFcnt = 1 then
 								RAM_R32isR32min_state <= toac;
 								RAM_R32isR32min_BUFcnt <= 8;
+								operation := EX;
+								state <= fetch;
 							else
 								RAM_R32isR32min_BUFcnt <= RAM_R32isR32min_BUFcnt / 2;
 							end if;
 
 						when decrement =>
 							reg32_wr <= A(2 downto 0);
-							AAR_sel <= A(2 downto 0);
+							AAR_sel <= A(3 downto 0);
 							AAR_dec <= '1';
 							RAM_R32isR32min_state <= store;
 
 						when others =>
 							operation := EX;
+							state <= fetch;
 					end case;
 
 				-- RAM[REG32(A 3b)] = REG32(B 3b) pointer increasing
@@ -535,18 +541,21 @@ begin
 							if RAM_R32isR32plus_BUFcnt = 1 then
 								RAM_R32isR32plus_state <= toac;
 								RAM_R32isR32plus_BUFcnt <= 1;
+								operation := EX;
+								state <= fetch;
 							else
 								RAM_R32isR32plus_BUFcnt <= RAM_R32isR32plus_BUFcnt * 2;
 							end if;
 
 						when increment =>
 							reg32_wr <= A(2 downto 0);
-							AAR_sel <= A(2 downto 0);
+							AAR_sel <= A(3 downto 0);
 							AAR_inc <= '1';
 							RAM_R32isR32plus_state <= store;
 
 						when others =>
 							operation := EX;
+							state <= fetch;
 					end case;
 
 				when others =>

@@ -19,8 +19,8 @@ end entity;
 architecture a of RAM is
 	type RAM_ARRAY is array (0 to 127) of std_logic_vector (7 downto 0);
 	signal RAM: RAM_ARRAY := (
-		x"01",x"02",x"0f",x"00",
-		x"00",x"00",x"00",x"00",
+		x"08",x"20",x"00",x"00",
+		x"00",x"0f",x"00",x"00",
 		x"00",x"00",x"00",x"00",
 		x"00",x"00",x"0d",x"00",
 		x"00",x"00",x"00",x"00",
