@@ -391,7 +391,7 @@ begin
 
 				-- REG32(A 3b)++
 				when R32inc =>
-					AAR_sel <= A(2 downto 0);
+					AAR_sel <= A(3 downto 0);
 					AAR_inc <= '1';
 					reg32_wr <= A(2 downto 0);
 					operation := EX;

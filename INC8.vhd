@@ -23,7 +23,7 @@ begin
 --	D <= "LLLLLLLL";
 
 	process(RES, inc, dec, CLK, D)
-		variable DATA : integer;
+		variable DATA : integer range 0 to 255;
 	begin
 		if RES='1' then
 			DATA := 0;
