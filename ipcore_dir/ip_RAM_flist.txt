@@ -1,0 +1,17 @@
+# Output products list for <ip_RAM>
+_xmsgs/pn_parser.xmsgs
+ip_RAM/blk_mem_gen_v7_3_readme.txt
+ip_RAM/doc/blk_mem_gen_v7_3_vinfo.html
+ip_RAM/doc/pg058-blk-mem-gen.pdf
+ip_RAM.asy
+ip_RAM.gise
+ip_RAM.mif
+ip_RAM.ngc
+ip_RAM.sym
+ip_RAM.vhd
+ip_RAM.vho
+ip_RAM.xco
+ip_RAM.xise
+ip_RAM_flist.txt
+ip_RAM_xmdf.tcl
+summary.log

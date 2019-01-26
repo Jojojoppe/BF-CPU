@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <report-views version="2.0" >
  <header>
-  <DateModified>2019-01-26T11:59:43</DateModified>
+  <DateModified>2019-01-26T13:43:50</DateModified>
   <ModuleName>BF_CPU</ModuleName>
-  <SummaryTimeStamp>2019-01-26T11:56:04</SummaryTimeStamp>
+  <SummaryTimeStamp>2019-01-26T13:43:39</SummaryTimeStamp>
   <SavedFilePath>/home/joppe/Projects/BF_CPU/iseconfig/BF_CPU.xreport</SavedFilePath>
   <ImplementationReportsDirectory>/home/joppe/Projects/BF_CPU/build</ImplementationReportsDirectory>
   <DateInitialized>2019-01-26T11:53:13</DateInitialized>
