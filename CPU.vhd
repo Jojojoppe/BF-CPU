@@ -17,6 +17,9 @@ entity CPU is
 		iwr			: out std_logic;
 		ird			: out std_logic;
 
+		irdy		: in std_logic;
+		ibus		: in std_logic;
+
 		HLT			: out std_logic
 	);
 end entity;
@@ -84,7 +87,7 @@ architecture a of CPU is
 	signal reg32_wr		: std_logic_vector(2 downto 0);
 	signal reg32_rd		: std_logic_vector(2 downto 0);
 
-	type state_t is (reset, fetch, decode, dNOP, dDPp, dDPm, dp, dm, dWo, dWc, dI, dD, dS, dL, dC, dO, dH, dpt, dcm, dp1, dp2, dm1, dm2, dl1, dl2, dWo1, dWo2, dWo3, dWo4, dWc1, dWc2, dWc3, dc1, dO1, dpt1, dcm1);
+	type state_t is (reset, fetch, decode, dNOP, dDPp, dDPm, dp, dm, dWo, dWc, dI, dD, dS, dL, dC, dO, dH, dpt, dcm, dp1, dp2, dm1, dm2, dl1, dl2, dWo1, dWo2, dWo3, dWo4, dWc1, dWc2, dWc3, dc1, dO1, dpt1, dcm1, dcm2, dpt2);
 	type operation_t is (R8isRAM_R32, RAM_R32isR8, R8inc, R8dec, R32inc, R32dec, R32isRAM_R32plus, R32isRAM_R32min, RAM_R32isR32plus, RAM_R32isR32min, EX);
 	type R32isRAM_R32plus_state_t is (fetch, increment, store);
 	type R32isRAM_R32min_state_t is (fetch, decrement, store);
@@ -366,21 +369,29 @@ begin
 
 				-- Output
 				when dpt =>
+					if ibus = '0' then
+						state <= dpt1;
+					end if;
+				when dpt1 =>
 					operation := R8isRAM_R32;
 					A := x"01"; -- AC
 					B := x"02"; -- DP
-					state <= dpt1;
-				when dpt1 =>
+					state <= dpt2;
+				when dpt2 =>
 					IO_wr <= '1';
 					reg8_rd <= "01"; -- AC
 					state <= fetch;
 
 				-- Input
 				when dcm =>
+					if irdy = '1' then
+						state <= dcm1;
+					end if;
+				when dcm1 =>
 					IO_rd <= '1';
 					reg8_wr <= "01"; -- AC
-					state <= dcm1;
-				when dcm1 =>
+					state <= dcm2;
+				when dcm2 =>
 					operation := RAM_R32isR8;
 					A := x"02"; -- DP
 					B := x"01"; -- AC

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--This is an ISE project configuration file.-->
+<!--It holds project specific layout data for the projectmgr plugin.-->
+<!--Copyright (c) 1995-2009 Xilinx, Inc.  All rights reserved.-->
+<Project version="2" owner="projectmgr" name="BF_CPU" >
+   <!--This is an ISE project configuration file.-->
+   <ItemView engineview="SynthesisOnly" guiview="Source" compilemode="AutoCompile" >
+      <ClosedNodes>
+         <ClosedNodesVersion>2</ClosedNodesVersion>
+         <ClosedNode>/BF_CPU - a |home|joppe|Projects|BF_CPU|BF_CPU.vhd</ClosedNode>
+         <ClosedNode>/BF_CPU - a |home|joppe|Projects|BF_CPU|BF_CPU.vhd/e_CPU - CPU - a</ClosedNode>
+         <ClosedNode>/TB - a |home|joppe|Projects|BF_CPU|TB.vhd</ClosedNode>
+         <ClosedNode>/TB - a |home|joppe|Projects|BF_CPU|TB.vhd/e_CPU - CPU - a</ClosedNode>
+         <ClosedNode>/TB - a |home|joppe|Projects|BF_CPU|TB.vhd/e_TB - BF_CPU - a</ClosedNode>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem>BF_CPU - a (/home/joppe/Projects/BF_CPU/BF_CPU.vhd)</SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff0000000000000001000000010000000000000000000000000000000002020000000100000001000000640000010f000000020000000000000000000000000200000064ffffffff0000008100000003000000020000010f0000000100000003000000000000000100000003</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem>BF_CPU - a (/home/joppe/Projects/BF_CPU/BF_CPU.vhd)</CurrentItem>
+   </ItemView>
+   <ItemView engineview="SynthesisOnly" sourcetype="DESUT_VHDL_ARCHITECTURE" guiview="Process" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+         <ClosedNode>Configure Target Device</ClosedNode>
+         <ClosedNode>Design Utilities</ClosedNode>
+         <ClosedNode>Implement Design</ClosedNode>
+         <ClosedNode>Implement Design/Map</ClosedNode>
+         <ClosedNode>Implement Design/Place &amp; Route/Back-annotate Pin Locations</ClosedNode>
+         <ClosedNode>Implement Design/Place &amp; Route/Generate IBIS Model</ClosedNode>
+         <ClosedNode>Implement Design/Place &amp; Route/Generate Post-Place &amp; Route Static Timing</ClosedNode>
+         <ClosedNode>Implement Design/Translate</ClosedNode>
+         <ClosedNode>Synthesize - XST</ClosedNode>
+         <ClosedNode>User Constraints</ClosedNode>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem>Generate Programming File</SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000000000000000000195000000010000000100000000000000000000000064ffffffff000000810000000000000001000001950000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem>Generate Programming File</CurrentItem>
+   </ItemView>
+   <ItemView guiview="File" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+      </ClosedNodes>
+      <SelectedItems/>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff0000000000000001000000000000000001000000000000000000000000000000000000060c000000040101000100000000000000000000000064ffffffff000000810000000000000004000000ae00000001000000000000011b0000000100000000000000840000000100000000000003bf0000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem>BF_CPU.ucf</CurrentItem>
+   </ItemView>
+   <ItemView guiview="Library" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+         <ClosedNode>work</ClosedNode>
+      </ClosedNodes>
+      <SelectedItems/>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000000000000010000000000000000000000000000000000000126000000010001000100000000000000000000000064ffffffff000000810000000000000001000001260000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem>work</CurrentItem>
+   </ItemView>
+   <ItemView engineview="BehavioralSim" guiview="Source" compilemode="AutoCompile" >
+      <ClosedNodes>
+         <ClosedNodesVersion>2</ClosedNodesVersion>
+         <ClosedNode>/BF_CPU - a |home|joppe|Projects|BF_CPU|BF_CPU.vhd</ClosedNode>
+         <ClosedNode>/TB - a |home|joppe|Projects|BF_CPU|TB.vhd</ClosedNode>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem>TB - a (/home/joppe/Projects/BF_CPU/TB.vhd)</SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff0000000000000001000000010000000000000000000000000000000002020000000100000001000000640000010f000000020000000000000000000000000200000064ffffffff0000008100000003000000020000010f0000000100000003000000000000000100000003</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem>TB - a (/home/joppe/Projects/BF_CPU/TB.vhd)</CurrentItem>
+   </ItemView>
+   <ItemView engineview="BehavioralSim" sourcetype="" guiview="Process" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+         <ClosedNode>Design Utilities</ClosedNode>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem></SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000000000000000000195000000010000000100000000000000000000000064ffffffff000000810000000000000001000001950000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem></CurrentItem>
+   </ItemView>
+   <ItemView engineview="BehavioralSim" sourcetype="DESUT_VHDL_ARCHITECTURE" guiview="Process" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem></SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000000000000000000195000000010000000100000000000000000000000064ffffffff000000810000000000000001000001950000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem></CurrentItem>
+   </ItemView>
+   <ItemView engineview="SynthesisOnly" sourcetype="DESUT_XCO" guiview="Process" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem>Update Core to Latest Version</SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000000000000000000195000000010000000100000000000000000000000064ffffffff000000810000000000000001000001950000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem>Update Core to Latest Version</CurrentItem>
+   </ItemView>
+   <ItemView engineview="SynthesisOnly" sourcetype="DESUT_NGC" guiview="Process" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem></SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000000000000000000195000000010000000100000000000000000000000064ffffffff000000810000000000000001000001950000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem></CurrentItem>
+   </ItemView>
+   <ItemView engineview="SynthesisOnly" sourcetype="" guiview="Process" >
+      <ClosedNodes>
+         <ClosedNodesVersion>1</ClosedNodesVersion>
+         <ClosedNode>Design Utilities</ClosedNode>
+      </ClosedNodes>
+      <SelectedItems>
+         <SelectedItem></SelectedItem>
+      </SelectedItems>
+      <ScrollbarPosition orientation="vertical" >0</ScrollbarPosition>
+      <ScrollbarPosition orientation="horizontal" >0</ScrollbarPosition>
+      <ViewHeaderState orientation="horizontal" >000000ff00000000000000010000000100000000000000000000000000000000000000000000000195000000010000000100000000000000000000000064ffffffff000000810000000000000001000001950000000100000000</ViewHeaderState>
+      <UserChangedColumnWidths orientation="horizontal" >false</UserChangedColumnWidths>
+      <CurrentItem></CurrentItem>
+   </ItemView>
+   <SourceProcessView>000000ff0000000000000002000001510000012001000000060100000002</SourceProcessView>
+   <CurrentView>Implementation</CurrentView>
+</Project>

@@ -4,8 +4,12 @@ TIMESPEC "TS_SYS_CLK_PIN" = PERIOD "SYS_CLK_PIN" 10 ns HIGH 50%;
 
 NET "RST"				LOC = P124	| IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | PULLUP;
 
-NET "D_clk"				LOC = P34      | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST ; #Pin 37  # IO_L1N_VREF_3      		Sch = GPIO-N18  
-NET "D_HLT"                   LOC = P131     | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST ; #Pin 3  # IO_L35N_GCLK16_0    		Sch = GPIO-N1
+NET "D_IOrd"			LOC = P34      | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST ; #Pin 37  # IO_L1N_VREF_3      		Sch = GPIO-N18  
+NET "D_IOwr"            LOC = P131     | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST ; #Pin 3  # IO_L35N_GCLK16_0    		Sch = GPIO-N1
+
+
+NET "TX"                  LOC = P29      | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST ; #Pin 33  # IO_L36N_3          		Sch = GPIO-N16
+NET "RX"                  LOC = P32      | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST ; #Pin 35  # IO_L2N_3           		Sch = GPIO-N17
 
 NET "LED[0]" 			  LOC = P119	| IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #| PULLUP;
 NET "LED[1]" 			  LOC = P118	| IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #| PULLUP;

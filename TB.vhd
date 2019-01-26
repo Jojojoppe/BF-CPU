@@ -33,7 +33,7 @@ begin
 
 	-- CPU
 	e_CPU : entity CPU(a)
-		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
+		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, '0', '0', HLT);
 
 	-- IO0
 	e_IO0 : entity REG8(a)
