@@ -22,20 +22,32 @@ architecture a of BF_CPU is
 	signal IO_rd	: std_logic;
 	signal HLT		: std_logic;
 
+	signal sCLK		: std_logic;
+	signal IO0		: std_logic_vector(7 downto 0);
+
 begin
 
 	nRST <= not(RST);
 
-	-- RAM
-	e_RAM : entity RAM(a)
-		port map(CLK, nRST, RAM_rd, RAM_wr, D, D, A);
+	e_FDIV : entity FDIV(a) generic map(100000000, 2)
+		port map(CLK, sCLK, nRST);
 
-	-- CPU
-	e_CPU : entity CPU(a)
-		port map(CLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
 
-	-- IO0
-	e_IO0 : entity REG8(a)
-		port map(CLK, nRST, IO_rd, IO_wr, D, D, LED);
+--	-- RAM
+--	e_RAM : entity RAM(a)
+--		port map(sCLK, nRST, RAM_rd, RAM_wr, D, D, A);
+--
+--	-- CPU
+--	e_CPU : entity CPU(a)
+--		port map(sCLK, nRST, D, D, A, RAM_wr, RAM_rd, IO_wr, IO_rd, HLT);
+--
+--	-- IO0
+--	e_IO0 : entity REG8(a)
+--		port map(sCLK, nRST, IO_rd, IO_wr, D, D, IO0);
+--
+
+
+	LED(0) <= sCLK;
+	LED(7 downto 1) <= "0000000";
 
 end architecture;
