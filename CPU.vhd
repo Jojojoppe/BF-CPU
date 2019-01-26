@@ -1,5 +1,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
 use work.all;
 
 entity CPU is
@@ -9,7 +10,7 @@ entity CPU is
 
 		Din			: in std_logic_vector(7 downto 0);
 		Dout		: out std_logic_vector(7 downto 0);
-		A			: out std_logic_vector(31 downto 0);
+		ADR			: out std_logic_vector(31 downto 0);
 
 		wr			: out std_logic;
 		rd			: out std_logic;
@@ -37,22 +38,9 @@ architecture a of CPU is
 	signal IO_rd		: std_logic;
 	signal IO_wr		: std_logic;
 
-	-- Control lines registers
-	signal AC_wr		: std_logic;	-- Accumulator
-	signal AC_rd		: std_logic;
-	signal AC_clr		: std_logic;
-	signal IR_wr		: std_logic;	-- Instruction register
-	signal IR_rd		: std_logic;
 	signal IOR_wr		: std_logic;
 	signal IOR_rd		: std_logic;
 
-	-- Control lines pointer registers
-	signal IP_wr		: std_logic;	-- Instruction pointer
-	signal IP_rd		: std_logic;
-	signal DP_wr		: std_logic;	-- Data pointer
-	signal DP_rd		: std_logic;
-	signal SP_wr		: std_logic;	-- Stack pointer
-	signal SP_rd		: std_logic;
 	signal BU_wr		: std_logic_vector(3 downto 0);	-- Buffer
 	signal BU_rd		: std_logic;
 
@@ -94,46 +82,34 @@ architecture a of CPU is
 	signal reg32_wr		: std_logic_vector(2 downto 0);
 	signal reg32_rd		: std_logic_vector(2 downto 0);
 
-	type state_t is (reset, fetch, decode, dNOP, dDPp, dDPm, dp, dm, dWo, dWc, dI, dD, dS, dL, dC, dO, dH, dpt, dcm);
-	type operation_t is (R8isRAM_R32, RAM_R32isR8, R8inc, R8dec, R32inc, R32dec, R32isRAM_R32plus, R32isRAM_R32min, RAM_R32isR32plus, RAM_R32isR32min);
+	type state_t is (reset, fetch, decode, dNOP, dDPp, dDPm, dp, dm, dWo, dWc, dI, dD, dS, dL, dC, dO, dH, dpt, dcm, dp1, dp2, dm1, dm2, dl1, dl2);
+	type operation_t is (R8isRAM_R32, RAM_R32isR8, R8inc, R8dec, R32inc, R32dec, R32isRAM_R32plus, R32isRAM_R32min, RAM_R32isR32plus, RAM_R32isR32min, EX);
 	type R32isRAM_R32plus_state_t is (fetch, increment, store);
 	type R32isRAM_R32min_state_t is (fetch, decrement, store);
 	type RAM_R32isR32plus_state_t is (toac, store, increment);
 	type RAM_R32isR32min_state_t is (toac, store, decrement);
+
 	signal state		: state_t;
-	signal operation	: operation_t;
 	signal R32isRAM_R32plus_state	: R32isRAM_R32plus_state_t;
 	signal R32isRAM_R32min_state	: R32isRAM_R32min_state_t;
 	signal RAM_R32isR32plus_state	: RAM_R32isR32plus_state_t;
 	signal RAM_R32isR32min_state	: RAM_R32isR32min_state_t;
+	signal R32isRAM_R32plus_BUFcnt	: integer;
+	signal R32isRAM_R32min_BUFcnt	: integer;
+	signal RAM_R32isR32plus_BUFcnt	: integer;
+	signal RAM_R32isR32min_BUFcnt	: integer;
+
+	signal operation_s	: operation_t;
+	signal A_s			: std_logic_vector(7 downto 0);
+	signal B_s			: std_logic_vector(7 downto 0);
 
 begin
-
--- DEMULTIPLEX SIGNALS
--- -------------------
-	-- REG8 wr
-	AC_wr		<= reg8_wr(0);
-	IR_wr		<= reg8_rd(1);
-
-	-- REG8 rd
-	AC_rd		<= reg8_rd(0);
-	IR_rd		<= reg8_rd(1);
-
-	-- REG32 wr
-	IP_wr		<= reg32_wr(0);
-	DP_wr		<= reg32_wr(1);
-	SP_wr		<= reg32_wr(2);
-
-	-- REG32 rd
-	IP_rd		<= reg32_rd(0);
-	DP_rd		<= reg32_rd(1);
-	SP_rd		<= reg32_rd(2);
-
+	
 	-- Internal main signals
 	nRST <= RST or sRST;
 
 	-- Connections with outher world
-	A <= CPU_A;
+	ADR <= CPU_A;
 	Dout <= CPU_D when ((RAM_wr = '1') or (IO_wr = '1')) else "ZZZZZZZZ";
 	CPU_D <= Din when ((RAM_rd = '1') or (IO_rd = '1')) else "ZZZZZZZZ";
 	wr <= RAM_wr;
@@ -143,9 +119,9 @@ begin
 
 	-- Registers
 	e_AC : entity REG8(a)			-- Accumulator
-		port map(CLK, nRST or AC_clr, AC_rd, AC_wr, CPU_D, CPU_D, AC_d);
+		port map(CLK, nRST, reg8_rd(0), reg8_wr(0), CPU_D, CPU_D, AC_d);
 	e_IR : entity REG8(a)			-- Instruction register
-		port map(CLK, nRST, IR_rd, IR_wr, CPU_D, CPU_D, IR_d);
+		port map(CLK, nRST, reg8_rd(1), reg8_wr(1), CPU_D, CPU_D, IR_d);
 
 	e_IOR : entity REG8(a)
 		port map(CLK, nRST, IOR_rd, IOR_wr, CPU_D, CPU_D, IOR_d);
@@ -163,11 +139,11 @@ begin
 
 	-- Pointer registers
 	e_IP : entity REG32(a)			-- Instruction pointer
-		port map(CLK, nRST, IP_rd, IP_wr, CPU_A, CPU_A, IP_d);
+		port map(CLK, nRST, reg32_rd(0), reg32_wr(0), CPU_A, CPU_A, IP_d);
 	e_DP : entity REG32(a)			-- Data pointer
-		port map(CLK, nRST, DP_rd, DP_wr, CPU_A, CPU_A, DP_d);
+		port map(CLK, nRST, reg32_rd(1), reg32_wr(1), CPU_A, CPU_A, DP_d);
 	e_SP : entity REG32(a)			-- Data pointer
-		port map(CLK, nRST, SP_rd, SP_wr, CPU_A, CPU_A, SP_d);
+		port map(CLK, nRST, reg32_rd(2), reg32_wr(2), CPU_A, CPU_A, SP_d);
 	e_BU : entity REG8_32(a)
 		port map(CLK, nRST, BU_rd, BU_wr, BU_Din, CPU_A, BU_d);
 
@@ -187,17 +163,46 @@ begin
 	-- CONROL
 	-- ------
 	p_CONTROL : process(CLK, nRST)
+		variable operation	: operation_t;
+		variable A			: std_logic_vector(7 downto 0);
+		variable B			: std_logic_vector(7 downto 0);
+	begin
 		if nRST = '1' then
 			state <= reset;
+			operation := EX;
 		elsif falling_edge(CLK) then
+
+			RAM_wr		<= '0';
+			RAM_rd		<= '0';
+			reg8_wr		<= "00";
+			reg8_rd		<= "00";
+			reg32_wr	<= "000";
+			reg32_rd	<= "000";
+
+			BU_wr		<= "0000";
+			BU_rd		<= '0';
+			IOR_wr		<= '0';
+			IOR_rd		<= '0';
+
+			DAR_inc		<= '0';
+			DAR_dec		<= '0';
+			AAR_inc		<= '0';
+			AAR_dec		<= '0';
+			AAR_sel		<= "0000";
+
+			DAB_sel		<= "0000";
+			DAB_en		<= '0';
+
+			ADB_sel		<= "0000";
+
+			HLT <= '0';
 
 			-- CPU state machine
 			case state is
 				-- Reset the CPU
 				when reset =>
 					state <= fetch;
-					operation <= EX;
-
+					operation := EX;
 					R32isRAM_R32plus_state <= fetch;
 					R32isRAM_R32plus_BUFcnt <= 1;
 					R32isRAM_R32min_state <= fetch;
@@ -206,23 +211,22 @@ begin
 					RAM_R32isR32plus_BUFcnt <= 8;
 					RAM_R32isR32min_state <= toac;
 					RAM_R32isR32min_BUFcnt <= 1;
-
-					A <= x"00";
-					B <= x"00";
+					A := x"00";
+					B := x"00";
 
 				-- Fetch opcode
 				when fetch =>
-					operation <= R8isRAM_R32;
-					A <= x"02"; -- IR
-					B <= x"01"; -- IP
+					operation := R8isRAM_R32;
+					A := x"02"; -- IR
+					B := x"01"; -- IP
 					state <= decode;
 
 				-- Increase IP and decode opcode
 				when decode =>
-					operation <= R32inc;
-					A <= "01"; -- IP;
+					operation := R32inc;
+					A := x"01"; -- IP;
 
-					case IP_d(3 downto 0) is
+					case IR_d(3 downto 0) is
 						when x"0" => state <= dNOP;	-- " " NOP
 						when x"1" => state <= dDPp; -- ">" DP++
 						when x"2" => state <= dDPm; -- "<" DP--
@@ -252,67 +256,67 @@ begin
 
 				-- DP++
 				when dDPp =>
-					operation <= R8inc;
-					A <= x"01"; -- AC
+					operation := R32inc;
+					A := x"02"; -- DP
 					state <= fetch;
 
 				-- DP--
 				when dDPm =>
-					operation <= R8dec;
-					A <= x"01"; --AC
+					operation := R32dec;
+					A := x"02"; --DP
 					state <= fetch;
 
 				-- *DP++
 				when dp =>
-					operation <= R8isRAM_R32;
-					A <= x"01"; -- AC
-					B <= x"02"; -- DP;
+					operation := R8isRAM_R32;
+					A := x"01"; -- AC
+					B := x"02"; -- DP;
 					state <= dp1;
 				when dp1 =>
-					operation <= R8inc;
-					A <= x"01"; -- AC;
+					operation := R8inc;
+					A := x"01"; -- AC;
 					state <= dp2;
 				when dp2 =>
-					operation <= RAM_R32isR8;
-					A <= x"02"; -- DP
-					B <= x"01"; -- AC
+					operation := RAM_R32isR8;
+					A := x"02"; -- DP
+					B := x"01"; -- AC
 					state <= fetch;
-				
+
 				-- *DP--
 				when dm =>
-					operation <= R8isRAM_R32;
-					A <= x"01"; -- AC
-					B <= x"02"; -- DP;
+					operation := R8isRAM_R32;
+					A := x"01"; -- AC
+					B := x"02"; -- DP;
 					state <= dm1;
 				when dm1 =>
-					operation <= R8dec;
-					A <= x"01"; -- AC;
+					operation := R8dec;
+					A := x"01"; -- AC;
 					state <= dm2;
 				when dm2 =>
-					operation <= RAM_R32isR8;
-					A <= x"02"; -- DP
-					B <= x"01"; -- AC
+					operation := RAM_R32isR8;
+					A := x"02"; -- DP
+					B := x"01"; -- AC
 					state <= fetch;
 
 				-- IP = *IP
 				when dI =>
-					operation <= R32isRAM_R32plus;
-					A <= x"01"; -- IP
-					B <= x"01"; -- IP
+					operation := R32isRAM_R32plus;
+					A := x"01"; -- IP
+					B := x"01"; -- IP
 					state <= fetch;
 
 				-- DP = *IP
 				when dD =>
-					operation <= R32isRAM_R32plus;
-					A <= x"02"; -- DD
-					B <= x"01"; -- IP
+					operation := R32isRAM_R32plus;
+					A := x"02"; -- DD
+					B := x"01"; -- IP
 					state <= fetch;
 
 				-- SP = *IP
 				when dS =>
-					operation <= R32isRAM_R32plus;
-					A <= x"04"; -- SP
-					B <= x"01"; -- IP
+					operation := R32isRAM_R32plus;
+					A := x"04"; -- SP
+					B := x"01"; -- IP
 					state <= fetch;
 
 				-- *DP = 0
@@ -322,44 +326,55 @@ begin
 
 				-- *DP = L
 				when dL =>
-					operation <= R8isRAM_R32;
-					A <= x"01"; -- AC
-					B <= x"01"; -- IP
+					operation := R8isRAM_R32;
+					A := x"01"; -- AC
+					B := x"01"; -- IP
 					state <= dL1;
-				when dL1 <=
-					operation <= R32inc;
-					A <= x"01";
+				when dL1 =>
+					operation := R32inc;
+					A := x"01";
 					state <= dL2;
 				when dL2 =>
-					operation <= RAM_R32isR8;
-					A <= x"02"; -- DP
-					B <= x"01"; -- AC
+					operation := RAM_R32isR8;
+					A := x"02"; -- DP
+					B := x"01"; -- AC
 					state <= fetch;
-					
+
 				-- IOR = L
 				when dO =>
 					state <= fetch;
 					-- TODO not implemented yet
 
 				-- Output
-				when dpt <=
+				when dpt =>
 					state <= fetch;
 					-- TODO not implemented yet
 
 				-- Input
-				when dcm <=
+				when dcm =>
 					state <= fetch;
 					-- TODO not implemented yet
+
+				-- [
+				when dWo =>
+					state <= fetch;
+
+				-- ]
+				when dWc =>
+					state <= fetch;
 
 				when others =>
 					sRST <= '1'; -- Execute reset
 					state <= reset;
 			end case;
 
+			operation_s <= operation;
+			A_s <= A;
+			B_s <= B;
+
 			-- Execute operation
 			-- -----------------
 			case operation is
-
 				when EX =>
 					-- All signals which need to be reset here
 
@@ -368,40 +383,40 @@ begin
 					RAM_rd <= '1';
 					reg8_wr <= A(1 downto 0);
 					reg32_rd <= B(2 downto 0);
-					operation <= EX;
+					operation := EX;
 
 				-- RAM[REG32(A 3b)] = REG8(B 2b)
 				when RAM_R32isR8 =>
 					RAM_wr <= '1';
 					reg8_rd <= B(1 downto 0);
 					reg32_rd <= A(2 downto 0);
-					operation <= EX;
+					operation := EX;
 
 				-- REG32(A 3b)++
 				when R32inc =>
 					AAR_sel <= A(2 downto 0);
 					AAR_inc <= '1';
 					reg32_wr <= A(2 downto 0);
-					operation <= EX;
+					operation := EX;
 
 				-- REG32(A 3b)--
 				when R32dec =>
-					AAR_sel <= A(2 downto 0);
+					AAR_sel <= A(3 downto 0);
 					AAR_dec <= '1';
 					reg32_wr <= A(2 downto 0);
-					operation <= EX;
+					operation := EX;
 
 				-- REG8++ (only AC)
 				when R8inc =>
 					reg8_wr <= "01";
 					DAR_inc <= '1';
-					operation EX;
+					operation := EX;
 
 				-- REG8-- (only AC)
 				when R8dec =>
 					reg8_wr <= "01";
 					DAR_dec <= '1';
-					operation EX;
+					operation := EX;
 
 				-- REG32(A 3b) = RAM[REG32(B 3b)] pointer increasing
 				when R32isRAM_R32plus =>
@@ -431,10 +446,10 @@ begin
 							BU_rd <= '1';
 							R32isRAM_R32plus_state <= fetch;
 							R32isRAM_R32plus_BUFcnt <= 1;
-							operation <= EX;
+							operation := EX;
 
 						when others =>
-							operation <= EX;
+							operation := EX;
 					end case;
 
 				-- REG32(A 3b) = RAM[REG32(B 3b)] pointer decreasing
@@ -465,10 +480,10 @@ begin
 							BU_rd <= '1';
 							R32isRAM_R32min_state <= fetch;
 							R32isRAM_R32min_BUFcnt <= 8;
-							operation <= EX;
+							operation := EX;
 
 						when others =>
-							operation <= EX;
+							operation := EX;
 					end case;
 
 
@@ -482,8 +497,8 @@ begin
 							RAM_R32isR32min_state <= decrement;
 
 						when store =>
-							RAM_wd <= '1';
-							reg8_rr <= "01"; --AC
+							RAM_wr <= '1';
+							reg8_rd <= "01"; --AC
 							reg32_rd <= A(2 downto 0);
 
 							if RAM_R32isR32min_BUFcnt = 1 then
@@ -500,7 +515,7 @@ begin
 							RAM_R32isR32min_state <= store;
 
 						when others =>
-							operation <= EX;
+							operation := EX;
 					end case;
 
 				-- RAM[REG32(A 3b)] = REG32(B 3b) pointer increasing
@@ -513,8 +528,8 @@ begin
 							RAM_R32isR32plus_state <=increment;
 
 						when store =>
-							RAM_wd <= '1';
-							reg8_rr <= "01"; --AC
+							RAM_wr <= '1';
+							reg8_rd <= "01"; --AC
 							reg32_rd <= A(2 downto 0);
 
 							if RAM_R32isR32plus_BUFcnt = 1 then
@@ -531,13 +546,13 @@ begin
 							RAM_R32isR32plus_state <= store;
 
 						when others =>
-							operation <= EX;
+							operation := EX;
 					end case;
 
 				when others =>
-					operation <= EX;
+					operation := EX;
 			end case;
 
 		end if;
-
+	end process;
 end architecture;

@@ -65,7 +65,7 @@ begin
 	STIM_process :process
 	begin
 		RST <= '0';
-		wait for CLK_PERIOD*4;
+		wait for CLK_PERIOD*1;
 		RST <= '1';
 		wait;
 	end process;
