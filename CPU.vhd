@@ -41,6 +41,8 @@ architecture a of CPU is
 	signal IOR_wr		: std_logic;
 	signal IOR_rd		: std_logic;
 
+	signal AC_clr		: std_logic;
+
 	signal BU_wr		: std_logic_vector(3 downto 0);	-- Buffer
 	signal BU_rd		: std_logic;
 
@@ -82,7 +84,7 @@ architecture a of CPU is
 	signal reg32_wr		: std_logic_vector(2 downto 0);
 	signal reg32_rd		: std_logic_vector(2 downto 0);
 
-	type state_t is (reset, fetch, decode, dNOP, dDPp, dDPm, dp, dm, dWo, dWc, dI, dD, dS, dL, dC, dO, dH, dpt, dcm, dp1, dp2, dm1, dm2, dl1, dl2, dWo1, dWo2, dWo3, dWo4, dWc1, dWc2, dWc3);
+	type state_t is (reset, fetch, decode, dNOP, dDPp, dDPm, dp, dm, dWo, dWc, dI, dD, dS, dL, dC, dO, dH, dpt, dcm, dp1, dp2, dm1, dm2, dl1, dl2, dWo1, dWo2, dWo3, dWo4, dWc1, dWc2, dWc3, dc1, dO1, dpt1, dcm1);
 	type operation_t is (R8isRAM_R32, RAM_R32isR8, R8inc, R8dec, R32inc, R32dec, R32isRAM_R32plus, R32isRAM_R32min, RAM_R32isR32plus, RAM_R32isR32min, EX);
 	type R32isRAM_R32plus_state_t is (fetch, increment, store);
 	type R32isRAM_R32min_state_t is (fetch, decrement, store);
@@ -120,7 +122,7 @@ begin
 
 	-- Registers
 	e_AC : entity REG8(a)			-- Accumulator
-		port map(CLK, nRST, reg8_rd(0), reg8_wr(0), CPU_D, CPU_D, AC_d);
+		port map(CLK, nRST or AC_clr, reg8_rd(0), reg8_wr(0), CPU_D, CPU_D, AC_d);
 	e_IR : entity REG8(a)			-- Instruction register
 		port map(CLK, nRST, reg8_rd(1), reg8_wr(1), CPU_D, CPU_D, IR_d);
 
@@ -180,10 +182,15 @@ begin
 			reg32_wr	<= "000";
 			reg32_rd	<= "000";
 
+			AC_clr		<= '0';
+
 			BU_wr		<= "0000";
 			BU_rd		<= '0';
 			IOR_wr		<= '0';
 			IOR_rd		<= '0';
+
+			IO_wr		<= '0';
+			IO_rd		<= '0';
 
 			DAR_inc		<= '0';
 			DAR_dec		<= '0';
@@ -322,8 +329,13 @@ begin
 
 				-- *DP = 0
 				when dC =>
+					AC_clr <= '1';
+					state <= dC1;
+				when dC1 =>
+					operation := RAM_R32isR8;
+					A := x"02"; -- DP
+					B := x"01"; -- AC
 					state <= fetch;
-					-- TODO not implemented yet
 
 				-- *DP = L
 				when dL =>
@@ -343,18 +355,36 @@ begin
 
 				-- IOR = L
 				when dO =>
+					operation := R8isRAM_R32;
+					A := x"01"; -- AC
+					B := x"01"; -- IP
+					state <= dO1;
+				when dO1 =>
+					reg8_rd <= "01"; -- AC
+					IOR_wr <= '1';
 					state <= fetch;
-					-- TODO not implemented yet
 
 				-- Output
 				when dpt =>
+					operation := R8isRAM_R32;
+					A := x"01"; -- AC
+					B := x"02"; -- DP
+					state <= dpt1;
+				when dpt1 =>
+					IO_wr <= '1';
+					reg8_rd <= "01"; -- AC
 					state <= fetch;
-					-- TODO not implemented yet
 
 				-- Input
 				when dcm =>
+					IO_rd <= '1';
+					reg8_wr <= "01"; -- AC
+					state <= dcm1;
+				when dcm1 =>
+					operation := RAM_R32isR8;
+					A := x"02"; -- DP
+					B := x"01"; -- AC
 					state <= fetch;
-					-- TODO not implemented yet
 
 				-- [
 				when dWo =>
