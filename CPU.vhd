@@ -89,9 +89,45 @@ architecture a of CPU is
 	signal ADB_d2		: std_logic_vector(7 downto 0);
 	signal ADB_d3		: std_logic_vector(7 downto 0);
 
-	signal state		: integer;
+	signal reg8_wr		: std_logic_vector(1 downto 0);
+	signal reg8_rd		: std_logic_vector(1 downto 0);
+	signal reg32_wr		: std_logic_vector(2 downto 0);
+	signal reg32_rd		: std_logic_vector(2 downto 0);
+
+	type state_t is (reset, fetch, decode, dNOP, dDPp, dDPm, dp, dm, dWo, dWc, dI, dD, dS, dL, dC, dO, dH, dpt, dcm);
+	type operation_t is (R8isRAM_R32, RAM_R32isR8, R8inc, R8dec, R32inc, R32dec, R32isRAM_R32plus, R32isRAM_R32min, RAM_R32isR32plus, RAM_R32isR32min);
+	type R32isRAM_R32plus_state_t is (fetch, increment, store);
+	type R32isRAM_R32min_state_t is (fetch, decrement, store);
+	type RAM_R32isR32plus_state_t is (toac, store, increment);
+	type RAM_R32isR32min_state_t is (toac, store, decrement);
+	signal state		: state_t;
+	signal operation	: operation_t;
+	signal R32isRAM_R32plus_state	: R32isRAM_R32plus_state_t;
+	signal R32isRAM_R32min_state	: R32isRAM_R32min_state_t;
+	signal RAM_R32isR32plus_state	: RAM_R32isR32plus_state_t;
+	signal RAM_R32isR32min_state	: RAM_R32isR32min_state_t;
 
 begin
+
+-- DEMULTIPLEX SIGNALS
+-- -------------------
+	-- REG8 wr
+	AC_wr		<= reg8_wr(0);
+	IR_wr		<= reg8_rd(1);
+
+	-- REG8 rd
+	AC_rd		<= reg8_rd(0);
+	IR_rd		<= reg8_rd(1);
+
+	-- REG32 wr
+	IP_wr		<= reg32_wr(0);
+	DP_wr		<= reg32_wr(1);
+	SP_wr		<= reg32_wr(2);
+
+	-- REG32 rd
+	IP_rd		<= reg32_rd(0);
+	DP_rd		<= reg32_rd(1);
+	SP_rd		<= reg32_rd(2);
 
 	-- Internal main signals
 	nRST <= RST or sRST;
@@ -104,13 +140,6 @@ begin
 	rd <= RAM_rd;
 	iwr <= IO_wr;
 	ird <= IO_rd;
-
---	CPU_D <= "LLLLLLLL";
---	CPU_A <= "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL";
-
-	-- RAM
---	e_RAM : entity RAM(a)
---		port map(CLK, nRST, RAM_rd, RAM_wr, CPU_D, CPU_D, CPU_A);
 
 	-- Registers
 	e_AC : entity REG8(a)			-- Accumulator
@@ -157,627 +186,358 @@ begin
 
 	-- CONROL
 	-- ------
-	p_control : process(CLK, nRST)
-	begin
-		if nRST='1' then
-			state <= 0;	-- Reset the CPU
-
-		-- Control loop
+	p_CONTROL : process(CLK, nRST)
+		if nRST = '1' then
+			state <= reset;
 		elsif falling_edge(CLK) then
-			sRST		<= '0';
 
-			AC_wr		<= '0';
-			AC_rd		<= '0';
-			IR_wr		<= '0';
-			IR_rd		<= '0';
-			IP_wr		<= '0';
-			IP_rd		<= '0';
-			DP_wr		<= '0';
-			DP_rd		<= '0';
-			SP_wr		<= '0';
-			SP_rd		<= '0';
-			BU_wr		<= "0000";
-			BU_rd		<= '0';
-			IOR_wr		<= '0';
-			IOR_rd		<= '0';
-
-			AC_clr		<= '0';
-
-			DAR_inc		<= '0';
-			DAR_dec		<= '0';
-			AAR_inc		<= '0';
-			AAR_dec		<= '0';
-			AAR_sel		<= "0000";
-
-			DAB_sel		<= "0000";
-			DAB_en		<= '0';
-
-			ADB_sel		<= "0000";
-
-			RAM_wr		<= '0';
-			RAM_rd		<= '0';
-
-			IO_wr		<= '0';
-			IO_rd		<= '0';
-
-			HLT			<= '0';
-
+			-- CPU state machine
 			case state is
+				-- Reset the CPU
+				when reset =>
+					state <= fetch;
+					operation <= EX;
 
-				-- Reset CPU
-				when 0 =>
-					state		<= 1;
+					R32isRAM_R32plus_state <= fetch;
+					R32isRAM_R32plus_BUFcnt <= 1;
+					R32isRAM_R32min_state <= fetch;
+					R32isRAM_R32min_BUFcnt <= 8;
+					RAM_R32isR32plus_state <= toac;
+					RAM_R32isR32plus_BUFcnt <= 8;
+					RAM_R32isR32min_state <= toac;
+					RAM_R32isR32min_BUFcnt <= 1;
 
-				-- Fetch opcode from memory
-				when 1 =>
-					-- IR = RAM[IP]
-					RAM_rd		<= '1';
-					IR_wr		<= '1';
-					IP_rd		<= '1';
+					A <= x"00";
+					B <= x"00";
 
-					state		<= 2;
+				-- Fetch opcode
+				when fetch =>
+					operation <= R8isRAM_R32;
+					A <= x"02"; -- IR
+					B <= x"01"; -- IP
+					state <= decode;
 
 				-- Increase IP and decode opcode
-				when 2 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_inc		<= '1';
-					AAR_sel		<= "0001";
+				when decode =>
+					operation <= R32inc;
+					A <= "01"; -- IP;
 
-					-- Decode opcode
-					case IR_d(3 downto 0) is
-						-- " " NOP
-						when x"0" => state <= 1;
-						-- ">" DP++
-						when x"1" => state <= 3;
-						-- "<" DP--
-						when x"2" => state <= 4;
-						-- "+" RAM[DP]++
-						when x"3" => state <= 5;
-						-- "-" RAM[DP] --
-						when x"4" => state <= 7;
-						-- "[" Conditional forward jump
-						when x"5" => state <= 9;
-						-- "]" Conditional backward jump
-						when x"6" => state <= 24;
-						-- "I" Load IP
-						when x"7" => state <= 34;
-						-- "D" Load DP
-						when x"8" => state <= 42;
-						-- "S" Load SP
-						when x"9" => state <= 52;
-						-- "C" Clear RAM[DP]
-						when x"a" => state <= 61;
-						-- "L" Save literal to RAM[DP]
-						when x"b" => state <= 63;
-						-- "O" Set IO registers
-						when x"c" => state <= 67;
-						-- "." Output
-						when x"d" => state <= 69;
-						-- "," Input
-						when x"e" => state <= 71;
-						-- "H" Halt
-						when x"f" => state <= 66;
-						-- Unknown -> RESET CPU
-						when others =>
-							sRST <= '0';
-							state <= 0;
+					case IP_d(3 downto 0) is
+						when x"0" => state <= dNOP;	-- " " NOP
+						when x"1" => state <= dDPp; -- ">" DP++
+						when x"2" => state <= dDPm; -- "<" DP--
+						when x"3" => state <= dp; -- "+" *DP++
+						when x"4" => state <= dm; -- "-" *DP--
+						when x"5" => state <= dWo; -- "[" while(*dp){
+						when x"6" => state <= dWc; -- "]" }
+						when x"7" => state <= dI; -- "I" IP = *IP
+						when x"8" => state <= dD; -- "D" DP = *IP
+						when x"9" => state <= dS; -- "S" SP = *IP
+						when x"a" => state <= dC; -- "C" *DP = 0
+						when x"b" => state <= dL; -- "L" *DP = *IP
+						when x"c" => state <= dO; -- "O" IOR = *IP
+						when x"d" => state <= dpt; -- "." output = *DP
+						when x"e" => state <= dcm; -- "," *DP = input
+						when x"f" => state <= dH; -- "H" while(1);
+						when others => state <= reset;
 					end case;
 
-				-- Increase DP
-				when 3 =>
-					report ">";
-					-- DP++
-					DP_wr		<= '1';
-					AAR_sel		<= "0010";
-					AAR_inc		<= '1';
-					state		<= 1;
+				-- NOP
+				when dNOP =>
+					state <= fetch;
 
-				-- Decrease DP
-				when 4 =>
-					report "<";
-					-- DP--
-					DP_wr		<= '1';
-					AAR_sel		<= "0010";
-					AAR_dec		<= '1';
-					state		<= 1;
+				-- HALT
+				when dH =>
+					HLT <= '1';
 
-				-- Increase RAM[DP]
-				when 5 =>
-					report "+";
-					-- AC = RAM[DP]
-					RAM_rd		<= '1';
-					AC_wr		<= '1';
-					DP_rd		<= '1';
-					state		<= 6;
-				when 6 =>
-					-- RAM[DP] = AC+1
-					RAM_wr		<= '1';
-					DAR_inc		<= '1';
-					DP_rd		<= '1';
-					state		<= 1;
+				-- DP++
+				when dDPp =>
+					operation <= R8inc;
+					A <= x"01"; -- AC
+					state <= fetch;
 
-				-- Decrease RAM[DP]
-				when 7 =>
-					report "-";
-					-- AC = RAM[DP]
-					RAM_rd		<= '1';
-					AC_wr		<= '1';
-					DP_rd		<= '1';
-					state		<= 8;
-				when 8 =>
-					-- RAM[DP] = AC-1
-					RAM_wr		<= '1';
-					DAR_dec		<= '1';
-					DP_rd		<= '1';
-					state		<= 1;
+				-- DP--
+				when dDPm =>
+					operation <= R8dec;
+					A <= x"01"; --AC
+					state <= fetch;
 
-				-- Conditional forward jump
-				when 9 =>
-					report "[";
-					-- AC = RAM[DP]
-					RAM_rd		<= '1';
-					AC_wr		<= '1';
-					DP_rd		<= '1';
-					state		<= 10;
-				when 10 =>
-					-- Condition check
-					if AC_d = x"00" then
-						-- AC = RAM[IP]
-						RAM_rd		<= '1';
-						IP_rd		<= '1';
-						AC_wr		<= '1';
-						state		<= 22;
-					else
-						-- AC = IP[0]
-						AC_wr		<= '1';
-						ADB_sel		<= "0001";
-						IP_rd		<= '1';
-						state		<= 11;
-					end if;
-				when 11 =>
-					-- RAM[SP] = AC
-					SP_rd		<= '1';
-					RAM_wr		<= '1';
-					AC_rd		<= '1';
-					state		<= 12;
-				when 12 =>
-					-- SP--
-					SP_wr		<= '1';
-					AAR_sel		<= "0100";
-					AAR_dec		<= '1';
-					state		<= 13;
-				when 13 =>
-					-- AC = IP[1]
-					AC_wr		<= '1';
-					ADB_sel		<= "0010";
-					IP_rd		<= '1';
-					state		<= 14;
-				when 14 =>
-					-- RAM[SP] = AC
-					SP_rd		<= '1';
-					RAM_wr		<= '1';
-					AC_rd		<= '1';
-					state		<= 15;
-				when 15 =>
-					-- SP--
-					SP_wr		<= '1';
-					AAR_sel		<= "0100";
-					AAR_dec		<= '1';
-					state		<= 16;
-				when 16 =>
-					-- AC = IP[2]
-					AC_wr		<= '1';
-					ADB_sel		<= "0100";
-					IP_rd		<= '1';
-					state		<= 17;
-				when 17 =>
-					-- RAM[SP] = AC
-					SP_rd		<= '1';
-					RAM_wr		<= '1';
-					AC_rd		<= '1';
-					state		<= 18;
-				when 18 =>
-					-- SP--
-					SP_wr		<= '1';
-					AAR_sel		<= "0100";
-					AAR_dec		<= '1';
-					state		<= 19;
-				when 19 =>
-					-- AC = IP[3]
-					AC_wr		<= '1';
-					ADB_sel		<= "1000";
-					IP_rd		<= '1';
-					state		<= 20;
-				when 20 =>
-					-- RAM[SP] = AC
-					SP_rd		<= '1';
-					RAM_wr		<= '1';
-					AC_rd		<= '1';
-					state		<= 21;
-				when 21 =>
-					-- SP--
-					SP_wr		<= '1';
-					AAR_sel		<= "0100";
-					AAR_dec		<= '1';
-					state		<= 1;
-				when 22 =>
-					-- Check for ]
-					if AC_d(3 downto 0) = x"6" then
-						-- Execute ] (which will be NOP)
-						state		<= 1;
-					else
-						-- IP++
-						IP_wr		<= '1';
-						AAR_sel		<= "0001";
-						AAR_inc		<= '1';
-						state		<= 23;
-					end if;
-				when 23 =>
-					-- AC = RAM[IP]
-					AC_wr		<= '1';
-					RAM_rd		<= '1';
-					IP_rd		<= '1';
-					state		<= 22;
+				-- *DP++
+				when dp =>
+					operation <= R8isRAM_R32;
+					A <= x"01"; -- AC
+					B <= x"02"; -- DP;
+					state <= dp1;
+				when dp1 =>
+					operation <= R8inc;
+					A <= x"01"; -- AC;
+					state <= dp2;
+				when dp2 =>
+					operation <= RAM_R32isR8;
+					A <= x"02"; -- DP
+					B <= x"01"; -- AC
+					state <= fetch;
+				
+				-- *DP--
+				when dm =>
+					operation <= R8isRAM_R32;
+					A <= x"01"; -- AC
+					B <= x"02"; -- DP;
+					state <= dm1;
+				when dm1 =>
+					operation <= R8dec;
+					A <= x"01"; -- AC;
+					state <= dm2;
+				when dm2 =>
+					operation <= RAM_R32isR8;
+					A <= x"02"; -- DP
+					B <= x"01"; -- AC
+					state <= fetch;
 
-				-- Conditional backwards jump
-				when 24 =>
-					report "]";
-					-- AC = RAM[DP]
-					AC_wr		<= '1';
-					RAM_rd		<= '1';
-					DP_rd		<= '1';
-					state		<= 25;
-				when 25 =>
-					-- Condition check
-					if AC_d = x"00" then
-						-- Execute next instruction
-						state		<= 1;
-					else
-						-- SP++
-						SP_wr		<= '1';
-						AAR_sel		<= "0100";
-						AAR_inc		<= '1';
-						state		<= 26;
-					end if;
-				when 26 =>
-					-- BUF[3] = RAM[SP]
-					SP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "1000";
-					DAB_sel		<= "1000";
-					DAB_en		<= '1';
-					state		<= 27;
-				when 27 =>
-					-- SP++
-					SP_wr		<= '1';
-					AAR_sel		<= "0100";
-					AAR_inc		<= '1';
-					state		<= 28;
-				when 28 =>
-					-- BUF[2] = RAM[SP]
-					SP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0100";
-					DAB_sel		<= "0100";
-					DAB_en		<= '1';
-					state		<= 29;
-				when 29 =>
-					-- SP++
-					SP_wr		<= '1';
-					AAR_sel		<= "0100";
-					AAR_inc		<= '1';
-					state		<= 30;
-				when 30 =>
-					-- BUF[1] = RAM[SP]
-					SP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0010";
-					DAB_sel		<= "0010";
-					DAB_en		<= '1';
-					state		<= 31;
-				when 31 =>
-					-- SP++
-					SP_wr		<= '1';
-					AAR_sel		<= "0100";
-					AAR_inc		<= '1';
-					state		<= 32;
-				when 32 =>
-					-- BUF[0] = RAM[SP]
-					SP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0001";
-					DAB_sel		<= "0001";
-					DAB_en		<= '1';
-					state		<= 33;
-				when 33 =>
-					-- IP = BUF-1
-					IP_wr		<= '1';
-					AAR_sel		<= "1000";
-					AAR_dec		<= '1';
-					state		<= 1;
+				-- IP = *IP
+				when dI =>
+					operation <= R32isRAM_R32plus;
+					A <= x"01"; -- IP
+					B <= x"01"; -- IP
+					state <= fetch;
 
-				-- Load IP
-				when 34 =>
-					report "I";
-					-- BUF[3] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "1000";
-					DAB_sel		<= "1000";
-					DAB_en		<= '1';
-					state		<= 35;
-				when 35 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 36;
-				when 36 =>
-					-- BUF[2] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0100";
-					DAB_sel		<= "0100";
-					DAB_en		<= '1';
-					state		<= 37;
-				when 37 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 38;
-				when 38 =>
-					-- BUF[1] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0010";
-					DAB_sel		<= "0010";
-					DAB_en		<= '1';
-					state		<= 39;
-				when 39 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 40;
-				when 40 =>
-					-- BUF[0] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0001";
-					DAB_sel		<= "0001";
-					DAB_en		<= '1';
-					state		<= 41;
-				when 41 =>
-					-- IP = BUF
-					BU_rd		<= '1';
-					IP_wr		<= '1';
-					state		<= 51;
-				when 51 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 1;
+				-- DP = *IP
+				when dD =>
+					operation <= R32isRAM_R32plus;
+					A <= x"02"; -- DD
+					B <= x"01"; -- IP
+					state <= fetch;
 
+				-- SP = *IP
+				when dS =>
+					operation <= R32isRAM_R32plus;
+					A <= x"04"; -- SP
+					B <= x"01"; -- IP
+					state <= fetch;
 
-				-- Load DP
-				when 42 =>
-					report "D";
-					-- BUF[3] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "1000";
-					DAB_sel		<= "1000";
-					DAB_en		<= '1';
-					state		<= 43;
-				when 43 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 44;
-				when 44 =>
-					-- BUF[2] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0100";
-					DAB_sel		<= "0100";
-					DAB_en		<= '1';
-					state		<= 45;
-				when 45 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 46;
-				when 46 =>
-					-- BUF[1] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0010";
-					DAB_sel		<= "0010";
-					DAB_en		<= '1';
-					state		<= 47;
-				when 47 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 48;
-				when 48 =>
-					-- BUF[0] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0001";
-					DAB_sel		<= "0001";
-					DAB_en		<= '1';
-					state		<= 49;
-				when 49 =>
-					-- DP = BUF
-					BU_rd		<= '1';
-					DP_wr		<= '1';
-					state		<= 50;
-				when 50 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 1;
+				-- *DP = 0
+				when dC =>
+					state <= fetch;
+					-- TODO not implemented yet
 
-				-- Load SP
-				when 52 =>
-					report "S";
-					-- BUF[3] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "1000";
-					DAB_sel		<= "1000";
-					DAB_en		<= '1';
-					state		<= 53;
-				when 53 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 54;
-				when 54 =>
-					-- BUF[2] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0100";
-					DAB_sel		<= "0100";
-					DAB_en		<= '1';
-					state		<= 55;
-				when 55 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 56;
-				when 56 =>
-					-- BUF[1] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0010";
-					DAB_sel		<= "0010";
-					DAB_en		<= '1';
-					state		<= 57;
-				when 57 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 58;
-				when 58 =>
-					-- BUF[0] = RAM[IP]
-					IP_rd		<= '1';
-					RAM_rd		<= '1';
-					BU_wr		<= "0001";
-					DAB_sel		<= "0001";
-					DAB_en		<= '1';
-					state		<= 59;
-				when 59 =>
-					-- SP = BUF
-					BU_rd		<= '1';
-					SP_wr		<= '1';
-					state		<= 60;
-				when 60 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_sel		<= "0001";
-					AAR_inc		<= '1';
-					state		<= 1;
-
-				-- Reset RAM[DP]
-				when 61 =>
-					report "C";
-					-- AC = 0
-					AC_clr		<= '1';
-					state		<= 62;
-				when 62 =>
-					-- RAM[DP] = AC;
-					RAM_wr		<= '1';
-					DP_rd		<= '1';
-					AC_rd		<= '1';
-					state		<= 1;
-
-				-- Save literal to RAM[DP]
-				when 63 =>
-					report "L";
-					-- AC = RAM[IP]
-					AC_wr		<= '1';
-					RAM_rd		<= '1';
-					IP_rd		<= '1';
-					state		<= 64;
-				when 64 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_inc		<= '1';
-					AAR_sel		<= "0001";
-					state		<= 65;
-				when 65 =>
-					-- RAM[DP] = AC
-					RAM_wr		<= '1';
-					AC_rd		<= '1';
-					DP_rd		<= '1';
-					state		<= 1;
-
-				-- Halt
-				when 66 =>
-					report "H";
-					HLT			<= '1';
-
-				-- Set IO registers
-				when 67 =>
-					report "O";
-					-- IOR = RAM[IP]
-					RAM_rd		<= '1';
-					IOR_wr		<= '1';
-					IP_rd		<= '1';
-					state		<= 68;
-				when 68 =>
-					-- IP++
-					IP_wr		<= '1';
-					AAR_inc		<= '1';
-					AAR_sel		<= "0001";
-					state		<= 1;
+				-- *DP = L
+				when dL =>
+					operation <= R8isRAM_R32;
+					A <= x"01"; -- AC
+					B <= x"01"; -- IP
+					state <= dL1;
+				when dL1 <=
+					operation <= R32inc;
+					A <= x"01";
+					state <= dL2;
+				when dL2 =>
+					operation <= RAM_R32isR8;
+					A <= x"02"; -- DP
+					B <= x"01"; -- AC
+					state <= fetch;
+					
+				-- IOR = L
+				when dO =>
+					state <= fetch;
+					-- TODO not implemented yet
 
 				-- Output
-				when 69 =>
-					report ".";
-					-- AC = RAM[DP]
-					AC_wr		<= '1';
-					RAM_rd		<= '1';
-					DP_rd		<= '1';
-					state		<= 70;
-				when 70 =>
-					-- Output AC
-					AC_rd		<= '1';
-					IO_wr		<= '1';
-					state		<= 1;
+				when dpt <=
+					state <= fetch;
+					-- TODO not implemented yet
 
 				-- Input
-				when 71 =>
-					report ",";
-					-- Input AC
-					AC_wr		<= '1';
-					IO_rd		<= '1';
-					state		<= 72;
-				when 72 =>
-					-- RAM[DP] = AC
-					AC_rd		<= '1';
-					RAM_wr		<= '1';
-					DP_rd		<= '1';
-					state		<= 1;
+				when dcm <=
+					state <= fetch;
+					-- TODO not implemented yet
 
-				-- Unknown state -> reset CPU
 				when others =>
-					sRST		<= '1';
-					state		<= 0;
+					sRST <= '1'; -- Execute reset
+					state <= reset;
 			end case;
+
+			-- Execute operation
+			-- -----------------
+			case operation is
+
+				when EX =>
+					-- All signals which need to be reset here
+
+				-- REG8(A 2b) = RAM[REG32(B 3b)]
+				when R8isRAM_R32 =>
+					RAM_rd <= '1';
+					reg8_wr <= A(1 downto 0);
+					reg32_rd <= B(2 downto 0);
+					operation <= EX;
+
+				-- RAM[REG32(A 3b)] = REG8(B 2b)
+				when RAM_R32isR8 =>
+					RAM_wr <= '1';
+					reg8_rd <= B(1 downto 0);
+					reg32_rd <= A(2 downto 0);
+					operation <= EX;
+
+				-- REG32(A 3b)++
+				when R32inc =>
+					AAR_sel <= A(2 downto 0);
+					AAR_inc <= '1';
+					reg32_wr <= A(2 downto 0);
+					operation <= EX;
+
+				-- REG32(A 3b)--
+				when R32dec =>
+					AAR_sel <= A(2 downto 0);
+					AAR_dec <= '1';
+					reg32_wr <= A(2 downto 0);
+					operation <= EX;
+
+				-- REG8++ (only AC)
+				when R8inc =>
+					reg8_wr <= "01";
+					DAR_inc <= '1';
+					operation EX;
+
+				-- REG8-- (only AC)
+				when R8dec =>
+					reg8_wr <= "01";
+					DAR_dec <= '1';
+					operation EX;
+
+				-- REG32(A 3b) = RAM[REG32(B 3b)] pointer increasing
+				when R32isRAM_R32plus =>
+					case R32isRAM_R32plus_state is
+						when fetch =>
+							reg32_rd <= B(2 downto 0);
+							RAM_rd <= '1';
+							DAB_en <= '1';
+							DAB_sel <= std_logic_vector(to_unsigned(R32isRAM_R32plus_BUFcnt, 4));
+							BU_wr <= std_logic_vector(to_unsigned(R32isRAM_R32plus_BUFcnt, 4));
+							R32isRAM_R32plus_state <= increment;
+
+						when increment =>
+							reg32_wr <= B(2 downto 0);
+							AAR_sel <= B(2 downto 0);
+							AAR_inc <= '1';
+
+							if R32isRAM_R32plus_BUFcnt=8 then
+								R32isRAM_R32plus_state <= store;
+							else
+								R32isRAM_R32plus_BUFcnt <= R32isRAM_R32plus_BUFcnt * 2;
+								R32isRAM_R32plus_state <= fetch;
+							end if;
+
+						when store =>
+							reg32_wr <= A(2 downto 0);
+							BU_rd <= '1';
+							R32isRAM_R32plus_state <= fetch;
+							R32isRAM_R32plus_BUFcnt <= 1;
+							operation <= EX;
+
+						when others =>
+							operation <= EX;
+					end case;
+
+				-- REG32(A 3b) = RAM[REG32(B 3b)] pointer decreasing
+				when R32isRAM_R32min =>
+					case R32isRAM_R32min_state is
+						when fetch =>
+							reg32_rd <= B(2 downto 0);
+							RAM_rd <= '1';
+							DAB_en <= '1';
+							DAB_sel <= std_logic_vector(to_unsigned(R32isRAM_R32min_BUFcnt, 4));
+							BU_wr <= std_logic_vector(to_unsigned(R32isRAM_R32min_BUFcnt, 4));
+							R32isRAM_R32min_state <= decrement;
+
+						when decrement =>
+							reg32_wr <= B(2 downto 0);
+							AAR_sel <= B(2 downto 0);
+							AAR_dec <= '1';
+
+							if R32isRAM_R32min_BUFcnt=1 then
+								R32isRAM_R32min_state <= store;
+							else
+								R32isRAM_R32min_BUFcnt <= R32isRAM_R32min_BUFcnt / 2;
+								R32isRAM_R32min_state <= fetch;
+							end if;
+
+						when store =>
+							reg32_wr <= A(2 downto 0);
+							BU_rd <= '1';
+							R32isRAM_R32min_state <= fetch;
+							R32isRAM_R32min_BUFcnt <= 8;
+							operation <= EX;
+
+						when others =>
+							operation <= EX;
+					end case;
+
+
+				-- RAM[REG32(A 3b)] = REG32(B 3b) pointer decreasing
+				when RAM_R32isR32min =>
+					case RAM_R32isR32min_state is
+						when toac =>
+							reg8_wr <= "01"; --AC
+							reg32_rd <= B(2 downto 0);
+							ADB_sel <= std_logic_vector(to_unsigned(RAM_R32isR32min_BUFcnt, 4));
+							RAM_R32isR32min_state <= decrement;
+
+						when store =>
+							RAM_wd <= '1';
+							reg8_rr <= "01"; --AC
+							reg32_rd <= A(2 downto 0);
+
+							if RAM_R32isR32min_BUFcnt = 1 then
+								RAM_R32isR32min_state <= toac;
+								RAM_R32isR32min_BUFcnt <= 8;
+							else
+								RAM_R32isR32min_BUFcnt <= RAM_R32isR32min_BUFcnt / 2;
+							end if;
+
+						when decrement =>
+							reg32_wr <= A(2 downto 0);
+							AAR_sel <= A(2 downto 0);
+							AAR_dec <= '1';
+							RAM_R32isR32min_state <= store;
+
+						when others =>
+							operation <= EX;
+					end case;
+
+				-- RAM[REG32(A 3b)] = REG32(B 3b) pointer increasing
+				when RAM_R32isR32plus =>
+					case RAM_R32isR32plus_state is
+						when toac =>
+							reg8_wr <= "01"; --AC
+							reg32_rd <= B(2 downto 0);
+							ADB_sel <= std_logic_vector(to_unsigned(RAM_R32isR32plus_BUFcnt, 4));
+							RAM_R32isR32plus_state <=increment;
+
+						when store =>
+							RAM_wd <= '1';
+							reg8_rr <= "01"; --AC
+							reg32_rd <= A(2 downto 0);
+
+							if RAM_R32isR32plus_BUFcnt = 1 then
+								RAM_R32isR32plus_state <= toac;
+								RAM_R32isR32plus_BUFcnt <= 1;
+							else
+								RAM_R32isR32plus_BUFcnt <= RAM_R32isR32plus_BUFcnt * 2;
+							end if;
+
+						when increment =>
+							reg32_wr <= A(2 downto 0);
+							AAR_sel <= A(2 downto 0);
+							AAR_inc <= '1';
+							RAM_R32isR32plus_state <= store;
+
+						when others =>
+							operation <= EX;
+					end case;
+
+				when others =>
+					operation <= EX;
+			end case;
+
 		end if;
-	end process;
 
 end architecture;
